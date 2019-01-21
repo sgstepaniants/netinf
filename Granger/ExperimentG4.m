@@ -1,11 +1,11 @@
 load('UsualParams.mat')
-expnum = 'G4';
+expnum = 'GD4';
 
 % Run MVGC toolbox several times and vote for final connectivity matrix.
 nvars = 4;
 mats = MakeNetworkTriDiag(nvars, stacks);
-reps = 30;
-ntrials = 1;
+reps = 10;
+ntrials = 10;
 
 % Save all initial conditions in experiment folder.
 save('UsualParams.mat')

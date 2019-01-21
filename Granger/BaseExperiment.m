@@ -1,6 +1,5 @@
-function BaseExperiment(expnum, mats, randpfn, randvfn, ...
-    randmfn, randkfn, randcfn, preprocfn, deltat, endtime, ntrials, reps, ...
-    tsplits, freq, stacks, networkInferenceFn, numDiagnostics)
+function BaseExperiment(expnum, mats, data, ntrials, reps, ...
+    tsplits, freq, networkInferenceFn, numDiagnostics)
 
 %
 % Core function of this codebase: runs a basic experiment. There are
@@ -20,30 +19,37 @@ function BaseExperiment(expnum, mats, randpfn, randvfn, ...
 %       this function loops over each network to generate data
 %       on that network
 %
-% randpfn 
+% Ks
+%       an [n x n x numMats] sequence of true network structures 
+%       (binary adjacency matrices) to try. The outer loop in 
+%       this function loops over each network to generate data
+%       on that network
+%
+% pfn 
 %       a function that takes a scalar n and returns an [n x 1] vector 
 %       of (possibly random) initial positions, one for each node in the 
 %       network
 %
-% randvfn 
+% vfn 
 %       a function that takes a scalar n and returns an [n x 1] vector 
 %       of (possibly random) initial velocities, one for each node in the 
 %       network
 %
-% randmfn 
+% mfn 
 %       a function that takes a scalar n and retuns an [n x 1] vector 
 %       of (possibly random) masses, one for each node
 %       in the network
 %
-% randkfn 
-%       a function that takes a scalar n and retuns a vector of length
-%       n - 1, n, or n + 1 of (possibly random) spring constants,
-%       one for each node in the network
-%
-% randcfn 
+% cfn 
 %       a function that takes a scalar n and retuns a vector of length
 %       n - 1, n, or n + 1 of (possibly random) damping coefficients,
 %       one for each node in the network
+%
+% bc
+%       boundary conditions ('fixed', 'free', 'circ')
+%
+% forcingFunc
+%       forcing function for oscillators
 %
 % preprocfn
 %       a function that takes the [n x m x N] matrix of the solution Y of 
@@ -85,9 +91,6 @@ function BaseExperiment(expnum, mats, randpfn, randvfn, ...
 %       to restart the experiment close to where we left off if something
 %       goes wrong with the computer.
 %
-% stacks
-%       number of times to stack data when creating Haskel matrix
-%
 % networkInferenceFn
 %       function that accepts the time series data as input and outputs an 
 %       adjacency matrix and any number of diagnostics. 
@@ -98,15 +101,17 @@ function BaseExperiment(expnum, mats, randpfn, randvfn, ...
 %       to output.
 %
 
-if nargin <= 15
+if nargin <= 7
     networkInferenceFn = @(data) DemoMVGC(data);
     numDiagnostics = 3;
 end
 
-% make directory to hold results files
-mkdir(sprintf('exp%s',expnum))
+% make directory to hold results files if one does not already exist
+if exist(expnum, 'dir') ~= 7
+    mkdir(sprintf('exp%s', expnum))
+end
 
-nvars = size(mats,1) / stacks; % number of variables / oscillators
+nvars = size(mats, 1); % number of variables / oscillators
 numMats = size(mats,3); % number of matrices we try
 numSplits = length(tsplits); % number of splits in time
 possedges = nvars^2-nvars; % possible edges for this number of variables
@@ -126,20 +131,14 @@ tableResultsFalseNegVoting = zeros(numMats, 1);
 tableResultsPerWrong = zeros(numMats, reps, numSplits);
 tableResultsPerWrongVoting = zeros(numMats, 1);
 
-% set up time sampling
-nobs = round(endtime / deltat);
-tSpan = linspace(0, endtime, nobs);
-
-% X1 and Y1 hold first trial 
-Y1 = zeros(nvars, nobs, reps);
-X1 = preprocfn(Y1); % changes size if need be based on fn
+votingMats = zeros(nvars, nvars, numMats);
 
 % est holds network inference method's estimate of the networks
-est = zeros(nvars * stacks, nvars * stacks, reps, numSplits);
+est = zeros(nvars, nvars, reps, numSplits, numMats);
 
 count = 1; % number of times have run network inference method (so know how often to save work)
 
-% loop over the networks 
+% loop over the networks
 for j = 1 : numMats
     truth = mats(:, :, j);
     tableTrueEdges(j) = nnz(truth);
@@ -147,27 +146,23 @@ for j = 1 : numMats
     % for each rep, different random frequencies, initial conditions, and noise
     for r = 1 : reps
         % generate the data and save information about it
-        Y = GenerateNNCoupledData(nvars, tSpan, ntrials, randpfn, randvfn, randmfn, randkfn, randcfn);
-        X = preprocfn(Y);
-        %plot(X(:, :, 1)')
-        X1(:,:,r) = X(:,:,1);
-        Y1(:,:,r) = Y(:,:,1);
+        X = data(:, :, :, r, j);
         
         % potentially split the time interval 
         beg = 1; % beginning of first time interval
         for s = 1 : numSplits
             % run network inference on this time interval
-            [est(:,:,r,s), diagnostics] = networkInferenceFn(X(:, beg : tsplits(s), :));
+            [est(:, :, r, s, j), diagnostics] = networkInferenceFn(X(:, beg : tsplits(s), :));
             beg = tsplits(s) + 1; % beginning for next time interval
             count = count + 1;
             
             % save results
-            tableResultsNorm(j, r, s) = norm(est(:,:,r,s) - truth)/norm(truth);
+            tableResultsNorm(j, r, s) = norm(est(:, :, r, s, j) - truth) / norm(truth);
             tableResultsDiagnostics(j, r, s, :) = diagnostics;
-            tableResultsInfEdges(j, r, s) = nnz(est(:,:,r,s)); 
-            tableResultsFalsePos(j, r, s) = length(find(est(:,:,r,s) - truth == 1)); 
-            tableResultsFalseNeg(j, r, s) = length(find(truth - est(:,:,r,s) == 1));
-            tableResultsPerWrong(j, r, s) = length(find(truth ~= est(:,:,r,s)))/possedges;
+            tableResultsInfEdges(j, r, s) = nnz(est(:, :, r, s, j)); 
+            tableResultsFalsePos(j, r, s) = length(find(est(:, :, r, s, j) - truth == 1)); 
+            tableResultsFalseNeg(j, r, s) = length(find(truth - est(:, :, r, s, j) == 1));
+            tableResultsPerWrong(j, r, s) = length(find(truth ~= est(:, :, r, s, j))) / possedges;
             
             if mod(count,freq) == 0
                 % after every freq runs of networkInferenceFn, save the current state,
@@ -176,15 +171,13 @@ for j = 1 : numMats
             end
         end
         
-        votingMat = sum(sum(est,3),4) / numVoters;
-        tableResultsNormVoting(j) = norm(votingMat - truth)/norm(truth);
+        votingMat = sum(sum(est(:, :, :, :, j), 3), 4) / numVoters;
+        votingMats(:, :, j) = votingMat;
+        tableResultsNormVoting(j) = norm(votingMat - truth) / norm(truth);
         tableResultsInfEdgesVoting(j) = nnz(votingMat);      
         tableResultsFalsePosVoting(j) = length(find(votingMat - truth == 1)); 
         tableResultsFalseNegVoting(j) = length(find(truth - votingMat == 1));
-        tableResultsPerWrongVoting(j) = length(find(truth ~= votingMat))/possedges;
-        
-        % save little file with results from this network
-        save(sprintf('./exp%s/Exp%s-Mat%d.mat',expnum,expnum,j),'truth','X1','Y1','est','tsplits')
+        tableResultsPerWrongVoting(j) = length(find(truth ~= votingMat)) / possedges;
     end
 end
 

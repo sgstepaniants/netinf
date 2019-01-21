@@ -1,0 +1,7 @@
+function index = indexMat(mat)
+    nvars = size(mat, 1);
+    
+    powerMat = repmat(1:nvars, [nvars, 1]) .* ~eye(nvars) - triu(ones(nvars), 1);
+    index = mat .* 2*ones(nvars).^powerMat
+end
+

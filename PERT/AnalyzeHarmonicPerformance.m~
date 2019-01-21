@@ -1,0 +1,183 @@
+clear all; close all; clc;
+addpath('../SimulateData/')
+addpath('../SimulateData/InitFunctions/')
+addpath('./BAgraph_dir/')
+addpath('./kmeans_opt/')
+
+%% Initialize Parameters
+
+% Number of network nodes
+nvars = 20;
+% Boundary conditions of oscillator system
+bc = 'fixed';
+
+% Probability of ER network edge connections
+prob = 0.5;
+
+% Gaussian noise function
+noiseVar = 0.1;
+noisefn = @(data) WhiteGaussianNoise(data, noiseVar);
+
+% Initial conditions and masses
+pfn = @(n) randpfn(n);
+vfn = @(n) zeros([n, 1]);
+mfn = @(n) ones([n, 1]);
+
+% Spring constants in oscillator network
+spring = 0.1;
+% Damping in oscillator network
+damping = 0.3;
+
+% Perturbation force for oscillators
+pertForce = 30;
+
+% Threshold for correlation algorithm
+corrThresh = 0.5;
+
+% Threshold for changepoint detection
+changepointThresh = 10;
+
+% Padding for window
+pad = 100;
+
+% Require condition that all perturbed nodes must be observed
+pertIsObs = true;
+
+% Make directory to hold results files if one does not already exist
+expName = sprintf('EXP(nvars%d_prob%.2f_spring%.2f_damping%.2f_pertf%.2f)', nvars, prob, spring, damping, pertForce);
+expPath = sprintf('HarmonicExperiments/%s', expName);
+if exist(expPath, 'dir') ~= 7
+    mkdir(expPath)
+end
+
+% Save experiment parameters.
+save(sprintf('%s/params.mat', expPath));
+
+
+%% Siumlate Data with Varying Numbers of Perturbations
+numTrials = 1;
+dataLog = cell(nvars, numTrials, 5);
+
+fprintf('Simulate Data:\n')
+for numPerts = 1:nvars
+    numPerts
+    
+    trial = 1;
+    while trial <= numTrials
+        % Build up network connectivity
+        mat = MakeNetworkER(nvars, prob, true);
+        K = MakeNetworkTriDiag(nvars + 2, false);
+        K(2:nvars+1, 2:nvars+1) = mat;
+        K = spring * K;
+
+        % Check if this adjacency matrix has disconnected oscillators.
+        G = digraph(mat.');
+        distLeft = distances(G, 1);
+        distRight = distances(G, nvars);
+        disconnectedNodes = find(~isfinite(distLeft) & ~isfinite(distRight));
+
+        % Check if this adjacency matrix is resonant.
+        A = K(2:nvars+1, 2:nvars+1);
+        A = A - diag(sum(K(2:nvars+1, :), 2));
+        lambdas = eig(A);
+        amplitudes = real(-damping + sqrt(damping^2 + 4 * lambdas)) / 2;
+
+        % Create the timespan for the simulation.
+        eps = 0.1;
+        waitTime = ceil(log(eps / min(sqrt(sum(((pertForce * inv(A)).^2))))) / max(amplitudes));
+        
+        % If this adjacency matrix is bad, make a new simulation.
+        if ~isempty(disconnectedNodes) || any(amplitudes > 0.00001) || waitTime > 500
+            continue
+        end
+
+        deltat = 0.1;
+        endtime = waitTime * (numPerts + 1);
+        nobs = round(endtime / deltat);
+        tSpan = linspace(0, endtime, nobs);
+        
+        % Build up forcing function.
+        pertIdx = randsample(nvars, numPerts);
+        times = round(linspace(0, length(tSpan), numPerts+2));
+        pertTimes = times(2:end-1);
+        pertLength = round(length(tSpan)/(10*(numPerts+1)));
+        
+        forcingFunc = zeros([nvars, length(tSpan)]);
+        for k=1:numPerts
+            forcingFunc(pertIdx(k), pertTimes(k):pertTimes(k)+pertLength) = pertForce;
+        end
+        
+        % Generate data with forced perturbations.
+        data = GenerateNNCoupledData(nvars, tSpan, 1, K, pfn, vfn, ...
+            mfn, @(n)constcfn(n, damping), bc, forcingFunc);
+        noisyData = noisefn(data);
+        
+        dataLog{numPerts, trial, 1} = noisyData;
+        dataLog{numPerts, trial, 2} = mat;
+        dataLog{numPerts, trial, 3} = pertIdx;
+        dataLog{numPerts, trial, 4} = pertTimes;
+        dataLog{numPerts, trial, 5} = pertLength;
+        
+        trial = trial + 1;
+        
+        % Save experiment simulated data.
+        save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
+    end
+end
+
+
+%% Evaluate Algorithm on Data for Varying Numbers of Perturbations and Observations
+truePredMats = cell(nvars, nvars, numTrials, 2);
+accuracyLog = zeros(nvars, nvars, numTrials);
+
+fprintf('Run Algorithm:\n')
+for numObs = nvars:-1:1
+    numObs
+    % Randomly choose which nodes we are allowed to observe.
+    obsIdx = randsample(nvars, numObs);
+    
+    % If we can only perturb the ndes we can observe, then the maximum
+    % number of nodes we can perturb is the number of observed node.
+    largeNumPerts = nvars;
+    if pertIsObs
+        largestNumPerts = numObs;
+    end
+    
+    for numPerts = nvars:-1:1
+        numPerts
+        for trial = 1:numTrials
+            data = dataLog{numPerts, trial, 1};
+            mat = dataLog{numPerts, trial, 2};
+            pertIdx = dataLog{numPerts, trial, 3};
+            pertTimes = dataLog{numPerts, trial, 4};
+            pertLength = dataLog{numPerts, trial, 5};
+            
+            % Select only the subset of nodes that we can observe.
+            observedData = data(obsIdx, :);
+            [Aprob, pertOrders] = CreateProbabilityMatrix(observedData, nvars, pertIdx, obsIdx, pertTimes, ...
+                                                        pertLength, 'corr', corrThresh, pad);
+            
+            % Get the network reconstruction our algorithm produces.
+            predMat = Aprob > 0.5;
+            truePredMats{numPerts, numObs, trial, 1} = mat;
+            truePredMats{numPerts, numObs, trial, 2} = predMat;
+            
+            % Compute the accuracy of this reconstruction (fraction of edges
+            % correctly predicted) and store it in the scoring matrix.
+            acc = 1 - nnz(predMat(obsIdx, :) - mat(obsIdx, :)) / (nvars * numObs);
+            accuracyLog(numObs, numPerts, trial) = acc;
+            
+            % Save experiment results.
+            save(sprintf('%s/results.mat', expPath), 'truePredMats', 'accuracyLog');
+        end
+    end
+end
+
+% Show average accuracies for each number of perturbations and
+% observations.
+aveAccuracies = mean(accuracyLog, 3);
+clims = [0, 1];
+imagesc(aveAccuracies, clims)
+colorbar
+xlabel('Number of Perturbed Nodes')
+ylabel('Number of Observed Nodes')

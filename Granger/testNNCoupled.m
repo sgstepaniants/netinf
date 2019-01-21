@@ -2,30 +2,39 @@
 % neighbors by springs with certain initial conditions and boundary conditions.
 
 clear all; close all; clc;
+addpath('./InitFunctions/')
 
-nvars = 4;
+nvars = 2;
+bc = 'fixed';
+
+endtime = 10;
+nobs = 500;
 tSpan = linspace(0, endtime, nobs);
 
 noisefn  = @(data) WhiteGaussianNoise(data, 0.01);
-preprocfn = @(data) NoiseThenDetrend(data, noisefn);
 
-%randpfn = @(n) [0 : n - 1]' / n; % evenly spaced
-%randpfn = @(n) [1 : n]' / (n + 1); % evenly spaced
-%randvfn = @(n) [0.5, zeros(1, n - 1)]'; % one mass perturbed
-%randmfn = @(n) [100, 100, 100, 100]'
-%randpfn = @(n) [rand(1) / 2 - 0.25, 0.25, rand(1) / 2 + 0.25, 0.75]';
-%randpfn = @(n) [-0.5, -0.25, 0, 0.25]'
-randcfn = @(n) 0 * ones(n, 1);
+%pfn = @(n) unifpfn(n, bc);
+pfn = @(n) unifpfn(n, bc) + [1; 0];
+vfn = @(n) zeros([n, 1]);
 
-randkfn = @(n) 1 * ones(n, 1);
 
-bc = 'circ';
-Y = GenerateNNCoupledData(nvars, tSpan, 1, randpfn, randvfn, randmfn, randkfn, randcfn, bc, 0);
-%X = preprocfn(Y);
+prob = 1;
+spring = 1;
+%mat = MakeNetworkSymmER(nvars, prob, true);
+K = MakeNetworkTriDiag(nvars + 2, false);
+%K(2, 5) = 1;
+%K(2:nvars+1, 2:nvars+1) = mat;
+K = spring * K;
 
-hold on
-plot(Y(:, :, 1)')
+forcingFunc = zeros([nvars, length(tSpan)]);
+%forcingFunc(ceil(nvars/2), 1) = 10;
 
+ntrials = 100;
+Y = GenerateNNCoupledData(nvars, tSpan, ntrials, K, pfn, vfn, ...
+        @(n)constmfn(n, 1), @(n)constcfn(n, 0), bc, forcingFunc);
+%X = noisefn(Y);
+
+return
 for t = 1 : size(tSpan, 2)
     for i = 1 : nvars
         if (strcmp(bc, 'circ'))
@@ -39,7 +48,7 @@ for t = 1 : size(tSpan, 2)
             r = 0.1;
             rectangle('Position', [pos - r, - r, 2 * r, 2 * r], ...
                 'FaceColor',[i / nvars, 0.2, 0.2], 'Curvature', [1, 1])
-            axis([-0.25 1.25 -0.75 0.75])
+            axis([-1 1 -1 1])
         end
     end
     pause(0.001)

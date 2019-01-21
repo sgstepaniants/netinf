@@ -1,3 +1,9 @@
 .DS_Store
-Granger/mvgc_v1.0/*
-CCM/rEDM/*
+Granger/mvgc_v1.0/
+Granger/expPaper1/
+Granger/expPaper2/
+CCM/rEDM/
+PERT/HarmonicExperiments/
+PERT/KuramotoExperiments/
+NN/data/
+

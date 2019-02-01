@@ -91,7 +91,7 @@ while trial <= numTrials
 
     % Compute perturbation order and compare to true perturbation order.
     pad = 100;
-    obsIdx = 1:nvars;
+    obsIdx = true([1, nvars]);
     observedData = data(obsIdx, :);
     predPertOrders = GetPertOrders(observedData, nvars, pertIdx, obsIdx, pertTimes, pertLength, 'corr', corrThresh, pad);
     truePertOrders = TruePertOrders(mat, pertIdx, obsIdx);

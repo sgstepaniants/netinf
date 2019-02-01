@@ -1,10 +1,10 @@
-function [pertOrders, pertValues] = GetPertOrders(observedData, nvars, pertIdx, obsIdx, pertTimes, ...
+function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx, pertTimes, ...
                                         pertLength, method, thresh, pad, movvarWidth)
     % Give default values for all optional arguments.
     if strcmp(method, 'corr')
         % For the correlation method, every node that is perturbed must be
         % observable.
-        if ~all(ismember(pertIdx, obsIdx))
+        if ~all(ismember(pertIdx, find(obsIdx)))
             error('For correlation method, perturbed nodes must be observed.')
         end
         
@@ -31,15 +31,19 @@ function [pertOrders, pertValues] = GetPertOrders(observedData, nvars, pertIdx, 
         error('Incorrect method specified.')
     end
     
+    nvars = length(obsIdx);
+    
     % Record values for each perturbed node.
     numPerts = length(pertTimes);
     pertValues = nan(numPerts, nvars);
     if strcmp(method, 'corr')
-        pertValues(:, obsIdx) = CorrPertValues(observedData, pertIdx, pertTimes, pertLength, pad, thresh);
+        cumObs = cumsum(obsIdx);
+        alignedPertIdx = cumObs(pertIdx);
+        pertValues(:, obsIdx) = PertCorrs(observedData, alignedPertIdx, pertTimes, pertLength, pad, thresh);
     elseif strcmp(method, 'meanvar')
-        pertValues(:, obsIdx) = MeanVarPertOrders(observedData, pertIdx, pertTimes, pertLength, movvarWidth, thresh);
+        pertValues(:, obsIdx) = PertMeanVariances(observedData, pertTimes, pertLength, movvarWidth, pad, thresh);
     elseif strcmp(method, 'chngpt')
-        pertValues(:, obsIdx) = ChngptPertOrders(observedData, pertIdx, pertTimes, pad, thresh);
+        pertValues(:, obsIdx) = PertChangepoints(observedData, pertTimes, pad, thresh);
     end
     
     % For each perturbation trial, take the values (computed by some method

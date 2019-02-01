@@ -119,7 +119,7 @@ Y_movvar = movvar(Y, [10, 0], 0, 2);
 
 % Compute distance from perturbed nodes using changepoints.
 pad = 100;
-obsIdx = 1:nvars;
+obsIdx = true([1, nvars]);
 %changepointThresh = 10;
 %[pertOrders, pertResponseTimes] = ChngptPertOrders(Y, pertIdx, obsIdx, pertTimes, pad, changepointThresh)
 
@@ -130,5 +130,5 @@ observedY = Y;
 [pertOrders, pertValues] = GetPertOrders(observedY, nvars, pertIdx, obsIdx, pertTimes, pertLength, 'corr', corrThresh, pad)
 
 % Compute the true distance in the network.
-obsIdx = 1:nvars;
+obsIdx = true([1, nvars]);
 truePertOrders = TruePertOrders(mat, pertIdx, obsIdx)

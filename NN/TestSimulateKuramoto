@@ -1,0 +1,27 @@
+from SimulateKuramotoOscillators import simulateKuramoto
+from MakeNetworks import tridiag, erdos_reyni
+from InitFunctions import *
+from matplotlib import pyplot as plt
+
+n = 2
+p = 0.5
+K = 10
+A = erdos_reyni(n, p)
+print A
+
+tspan = np.linspace(0, 10, 1000)
+p0 = randcircpfn(n)
+w0 = randwfn(n)
+
+X = simulateKuramoto(A, tspan, K, p0, w0)
+
+# Plot the solution.
+for i in range(n):
+    plt.plot(tspan, X[:, i], label='node '+str(i+1))
+plt.xlabel('t')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+
+

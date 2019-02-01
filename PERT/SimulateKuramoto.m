@@ -78,7 +78,7 @@ legend(strcat('n', num2str((1:nvars).')))
 
 % Compute distance from perturbed nodes using changepoints.
 % pad = 100;
-% obsIdx = 1:nvars;
+% obsIdx = true([1, nvars]);
 % changepointThresh = 10;
 % [pertOrders, pertResponseTimes] = ChngptPertOrders(diff(Y, [], 2), pertIdx, obsIdx, pertTimes, pad, changepointThresh)
 
@@ -96,7 +96,7 @@ pertMeans(pertIdx) = [];
 pertMeans = pertMeans / pertAve;
 
 movvarWidth = nobs / 500;
-obsIdx = 1:nvars;
+obsIdx = true([1, nvars]);
 predMeanPertOrders = MeanVarPertOrders(Y, pertIdx, obsIdx, pertTimes, pertLength, movvarWidth, 0)
 
 % Compute the true distance in the network.

@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from numpy.random import random_sample, randn
 
 # functions that initialize the node positions
@@ -13,8 +14,18 @@ def unifpfn(n, bc):
         raise Exception('invalid boundary conditions')
     return p
 
+
 def randpfn(n):
     return random_sample(n) - 0.5
+
+
+def randcircpfn(n):
+    return 2 * math.pi * random_sample(n)
+
+
+def randwfn(n):
+    return 2 * random_sample(n) - 1
+
 
 def smallrandpfn(n, bc):
     p = unifpfn(n, bc)
@@ -28,23 +39,29 @@ def smallrandpfn(n, bc):
         raise Exception('invalid boundary conditions')
     return p
 
+
 # functions that initialize the node velocities
 def randvfn(n):
     return randn(n) 
 
+
 def zerovfn(n):
     return np.zeros(n)
+
 
 # functions that initialize the node masses
 def constmfn(n, const):
     return const * np.ones(n)
 
+
 def randmfn(n):
     return random_sample(n)
+
 
 # functions that initialize the damping coefficients
 def constcfn(n, const):
     return const * np.ones(n)
+
 
 def zerocfn(n):
     return np.zeros(n)

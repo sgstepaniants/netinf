@@ -17,7 +17,7 @@ from InitFunctions import *
 #******************************************************************************
 n = 2
 
-trials = 100000;
+trials = 100000
 tspan = np.linspace(0, 10, trials+2)
 deltat = tspan[1] - tspan[0]
 bc = 'fixed'

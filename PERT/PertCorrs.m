@@ -1,4 +1,4 @@
-function pertValues = CorrPertValues(data, pertIdx, pertTimes, pertLength, pad, corrThresh)
+function pertValues = PertCorrs(data, pertIdx, pertTimes, pertLength, pad, corrThresh)
     n = size(data, 1);
     numPerts = length(pertTimes);
     
@@ -12,9 +12,9 @@ function pertValues = CorrPertValues(data, pertIdx, pertTimes, pertLength, pad, 
         windowData = data(:, pertWindow);
         
         corrMat = abs(corr(windowData.'));
-        pertCorrs = corrMat(pertInd, :);
-        values = 1 ./ corrMat(pertInd, :);
-        values(pertCorrs < corrThresh) = Inf;
+        corrs = corrMat(pertInd, :);
+        values = 1 ./ corrs;
+        values(corrs < corrThresh) = Inf;
         pertValues(k, :) = values;
     end
 end

@@ -75,7 +75,7 @@ while trial <= numTrials
     data = GenerateKuramotoData(mat, tSpan, ntrials, K, pfn, wfn, cfn, forcingFunc);
 
     % Compute perturbation order and compare to true perturbation order.
-    obsIdx = 1:nvars;
+    obsIdx = true([1, nvars]);
     truePertOrders = TruePertOrders(mat, pertIdx, obsIdx);
     
     %predPertOrders = ChngptPertOrders(data, pertIdx, obsIdx, pertTimes, pad, 10);

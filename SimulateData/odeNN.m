@@ -32,7 +32,7 @@ function dydt = odeNN(t, y, param)
     f = param{6};
     
     p = y(1 : n); % p = [p1; p2; ...; p_n]
-    p = p - unifpfn(n, bc);
+    p = p - uniffn(n, -0.5, 0.5, bc);
     v = y(n + 1 : 2 * n);
 
 %     if strcmp(bc, 'circ')  % n x n springs for circular bc's

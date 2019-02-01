@@ -1,4 +1,4 @@
-function [pertOrders, pertResponseTimes] = ChngptPertOrders(data, pertIdx, obsIdx, pertTimes, pad, changepointThresh)
+function [pertOrders, pertResponseTimes] = PertChangepoints(data, pertIdx, obsIdx, pertTimes, pad, changepointThresh)
     [n, m] = size(data);
     numPerts = length(pertTimes);
     

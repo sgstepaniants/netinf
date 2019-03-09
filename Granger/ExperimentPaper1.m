@@ -68,8 +68,8 @@ reps = 1;
 data = zeros(nvars, nobs, ntrials, reps, numMats);
 for j = 1 : numMats
     fprintf('Computing simulations for matrix %d\n', j)
+    K = Ks(:, :, j);
     for r = 1 : reps
-        K = Ks(:, :, j);
         data(:, :, :, r, j) = GenerateNNCoupledData(nvars, tSpan, ...
             ntrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
     end

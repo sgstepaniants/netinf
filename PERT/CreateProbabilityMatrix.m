@@ -19,8 +19,8 @@ function [AprobHist, pertOrders] = CreateProbabilityMatrix(observedData, pertIdx
     % pertOrders will have dimension (numObs x nvars).
     pertOrders = GetPertOrders(observedData, pertIdx, obsIdx, pertTimes, pertLength, method, thresh, pad, movvarWidth);
     
-    % Initialize the probabilit matrix we will construct.
-    Aprob = ones(nvars) / 2;
+    % Initialize the probability matrix we will construct.
+    Aprob = nan(nvars, nvars);
     % Create a penalty factor that will multiplicatively decrease
     % probabilities of non-causal edges.
     penalty = 0.1;
@@ -38,9 +38,6 @@ function [AprobHist, pertOrders] = CreateProbabilityMatrix(observedData, pertIdx
         
         for j=obsInds
             for k=obsInds
-                if j==1 && k==1
-                    1;
-                end
                 % j is the index causing and k is the index being caused.
                 jPertOrder = pertOrders(numPert, j);
                 kPertOrder = pertOrders(numPert, k);
@@ -50,17 +47,25 @@ function [AprobHist, pertOrders] = CreateProbabilityMatrix(observedData, pertIdx
                     continue
                 end
                 
+                % If the causal arrow from j to k has not been assigned a
+                % probability yet, then assign it to the default 0.5.
+                prevProb = 0.5;
+                if ~isnan(Aprob(k, j))
+                    prevProb = Aprob(k, j);
+                end
+                
                 causalInds = pertOrders(numPert, :) == kPertOrder - 1;
                 if ~isinf(kPertOrder) && causalInds(j)
                     % If j causes k, then recompute the probability of the
                     % edge j to k.
                     causalProbs = Aprob(k, causalInds);
-                    Aprob(k, j) = Aprob(k, j) / (1 - prod(1 - causalProbs));
+                    causalProbs(isnan(causalProbs)) = 0.5;
+                    Aprob(k, j) = prevProb / (1 - prod(1 - causalProbs));
                 else
                     % If we have evidence that j was perturbed and k did
-                    % not immediately become perturbed, then penalize this edge.
+                    % not become perturbed immediately after, then penalize this edge.
                     if (jPertOrder < kPertOrder - 1)
-                        Aprob(k, j) = penalty * Aprob(k, j);
+                        Aprob(k, j) = penalty * prevProb;
                     end
                 end
             end

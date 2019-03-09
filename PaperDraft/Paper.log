@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  1 FEB 2019 09:56
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  23 FEB 2019 16:48
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1639,6 +1639,9 @@ LaTeX Warning: Label `fig:example' multiply defined.
 
 LaTeX Warning: Label `fig:example' multiply defined.
 
+
+LaTeX Warning: Label `fig:example' multiply defined.
+
 )
 \openout1 = `Paper.aux'.
 
@@ -1765,80 +1768,87 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: GrangerConfusionMatrix.jpeg Graphic file (type jpg)
 
 <use GrangerConfusionMatrix.jpeg>
-Package pdftex.def Info: GrangerConfusionMatrix.jpeg used on input line 95.
+Package pdftex.def Info: GrangerConfusionMatrix.jpeg used on input line 97.
 (pdftex.def)             Requested size: 341.43306pt x 256.07324pt.
 
 <Pert1ConfusionMatrix.jpeg, id=97, 1027.84pt x 770.88pt>
 File: Pert1ConfusionMatrix.jpeg Graphic file (type jpg)
 
 <use Pert1ConfusionMatrix.jpeg>
-Package pdftex.def Info: Pert1ConfusionMatrix.jpeg used on input line 102.
+Package pdftex.def Info: Pert1ConfusionMatrix.jpeg used on input line 104.
 (pdftex.def)             Requested size: 341.43306pt x 256.07324pt.
 
 <Pert2ConfusionMatrix.jpeg, id=98, 1027.84pt x 770.88pt>
 File: Pert2ConfusionMatrix.jpeg Graphic file (type jpg)
 
 <use Pert2ConfusionMatrix.jpeg>
-Package pdftex.def Info: Pert2ConfusionMatrix.jpeg used on input line 109.
+Package pdftex.def Info: Pert2ConfusionMatrix.jpeg used on input line 111.
 (pdftex.def)             Requested size: 341.43306pt x 256.07324pt.
+
+<VaryStrengthsProbs.jpeg, id=99, 2007.5pt x 1084.05pt>
+File: VaryStrengthsProbs.jpeg Graphic file (type jpg)
+
+<use VaryStrengthsProbs.jpeg>
+Package pdftex.def Info: VaryStrengthsProbs.jpeg used on input line 118.
+(pdftex.def)             Requested size: 426.79134pt x 230.46922pt.
  [2 <./GrangerConfusionMatrix.jpeg>] [3 <./Pert1ConfusionMatrix.jpeg> <./Pert2C
-onfusionMatrix.jpeg>] [4]
-Overfull \hbox (113.54378pt too wide) in paragraph at lines 129--144
+onfusionMatrix.jpeg>] [4 <./VaryStrengthsProbs.jpeg>]
+Overfull \hbox (113.54378pt too wide) in paragraph at lines 138--153
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 129--144
+Underfull \hbox (badness 10000) in paragraph at lines 138--153
 
  []
 
 
-Overfull \hbox (95.78008pt too wide) in paragraph at lines 146--159
+Overfull \hbox (95.78008pt too wide) in paragraph at lines 155--168
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 146--159
+Underfull \hbox (badness 10000) in paragraph at lines 155--168
 
  []
 
 
-Overfull \hbox (118.68274pt too wide) in paragraph at lines 161--176
+Overfull \hbox (118.68274pt too wide) in paragraph at lines 170--185
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 161--176
+Underfull \hbox (badness 10000) in paragraph at lines 170--185
 
  []
 
 
-Overfull \hbox (100.91904pt too wide) in paragraph at lines 178--191
+Overfull \hbox (100.91904pt too wide) in paragraph at lines 187--200
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 178--191
+Underfull \hbox (badness 10000) in paragraph at lines 187--200
 
  []
 
 
-Overfull \hbox (105.10947pt too wide) in paragraph at lines 193--212
+Overfull \hbox (105.10947pt too wide) in paragraph at lines 202--221
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 193--212
+Underfull \hbox (badness 10000) in paragraph at lines 202--221
 
  []
 
 
-Overfull \hbox (70.84593pt too wide) in paragraph at lines 214--230
+Overfull \hbox (70.84593pt too wide) in paragraph at lines 223--239
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 214--230
+Underfull \hbox (badness 10000) in paragraph at lines 223--239
 
  []
 
@@ -1846,25 +1856,25 @@ Underfull \hbox (badness 10000) in paragraph at lines 214--230
 
 
 ]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 326.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 335.
  [7]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 326.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 335.
  (./Paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 326.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 326.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 335.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 335.
 Package rerunfilecheck Info: File `Paper.out' has not changed.
 (rerunfilecheck)             Checksum: 8E2CB51F4664909272802B49EC8F655E;1319.
 
 
 LaTeX Warning: There were multiply-defined labels.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 326.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 335.
  ) 
 Here is how much of TeX's memory you used:
- 15018 strings out of 493089
- 256327 string characters out of 6134842
- 452885 words of memory out of 5000000
- 18314 multiletter control sequences out of 15000+600000
+ 15024 strings out of 493089
+ 256476 string characters out of 6134842
+ 452875 words of memory out of 5000000
+ 18318 multiletter control sequences out of 15000+600000
  13350 words of font info for 51 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  45i,18n,40p,10397b,336s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -1890,10 +1900,10 @@ t/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2015/texmf-dist
 /fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive/2015/texmf-dist/f
 onts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2015/texmf-dist/fon
 ts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on Paper.pdf (7 pages, 608864 bytes).
+Output written on Paper.pdf (7 pages, 876694 bytes).
 PDF statistics:
- 221 PDF objects out of 1000 (max. 8388607)
- 185 compressed objects within 2 object streams
- 34 named destinations out of 1000 (max. 500000)
- 168 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 223 PDF objects out of 1000 (max. 8388607)
+ 186 compressed objects within 2 object streams
+ 35 named destinations out of 1000 (max. 500000)
+ 173 words of extra memory for PDF output out of 10000 (max. 10000000)
 

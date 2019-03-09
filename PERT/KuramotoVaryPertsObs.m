@@ -95,7 +95,13 @@ for numObs = nvars:nvars
         % If we can only perturb the nodes we can observe, choose the
         % nodes to perturb out of the nodes we can observe.
         if pertIsObs
-            pertIdx = randsample(find(obsIdx), numPerts);
+            if nnz(obsIdx) == 1
+                % Randsample doesn't work in the edge case where obsIdx
+                % contains one element.
+                pertIdx = find(obsIdx);
+            else
+                pertIdx = randsample(find(obsIdx), numPerts);
+            end
         else
             pertIdx = randsample(nvars, numPerts);
         end

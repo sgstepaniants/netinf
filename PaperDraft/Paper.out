@@ -10,10 +10,12 @@
 \BOOKMARK [1][-]{section.4}{Numerical Experiments}{}% 10
 \BOOKMARK [1][-]{section.5}{Computational Results}{}% 11
 \BOOKMARK [2][-]{subsection.5.1}{Inference for Two Oscillator System}{section.5}% 12
-\BOOKMARK [2][-]{subsection.5.2}{Inference for N Oscillators}{section.5}% 13
-\BOOKMARK [2][-]{subsection.5.3}{Inference with Damped Oscillator System}{section.5}% 14
-\BOOKMARK [1][-]{section.6}{Analysis}{}% 15
-\BOOKMARK [2][-]{subsection.6.1}{Reasons why Granger Causality Fails for Harmonic Oscillator Systems}{section.6}% 16
-\BOOKMARK [1][-]{section.7}{Appendix A}{}% 17
-\BOOKMARK [2][-]{subsection.7.1}{Calculating Wait Time for Damped Harmonic Oscillators}{section.7}% 18
-\BOOKMARK [1][-]{section.8}{Appendix B}{}% 19
+\BOOKMARK [2][-]{subsection.5.2}{Inference on Erdos-Renyi Networks}{section.5}% 13
+\BOOKMARK [2][-]{subsection.5.3}{Perturbation Inference for Two Oscillator System}{section.5}% 14
+\BOOKMARK [2][-]{subsection.5.4}{Inference for N Oscillators}{section.5}% 15
+\BOOKMARK [2][-]{subsection.5.5}{Inference with Damped Oscillator System}{section.5}% 16
+\BOOKMARK [1][-]{section.6}{Analysis}{}% 17
+\BOOKMARK [2][-]{subsection.6.1}{Reasons why Granger Causality works with Perturbed Harmonic Oscillator Data}{section.6}% 18
+\BOOKMARK [1][-]{section.7}{Appendix A}{}% 19
+\BOOKMARK [2][-]{subsection.7.1}{Calculating Wait Time for Damped Harmonic Oscillators}{section.7}% 20
+\BOOKMARK [1][-]{section.8}{Appendix B}{}% 21

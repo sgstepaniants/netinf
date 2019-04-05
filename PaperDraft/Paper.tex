@@ -10,6 +10,7 @@
 \usepackage{verbatim}
 \usepackage{hyperref}
 \usepackage{subcaption}
+\usepackage{float}
 \usepackage{physics}
 \usepackage{mwe}
 \usepackage{graphicx}
@@ -37,7 +38,7 @@
 
 \maketitle
 \begin{abstract}
-We review in this paper the definitions of Granger Causality and Convergent Cross Mappings (CCM). We show that their application to linear and nonlinear physical oscillator systems fail to reproduce accurate network reconstructions. We find a regime that involves perturbing and heavily damping these systems under which both methods give back the correct network topologies. A perturbation based network inference approach is presented to solve this problem. It is evaluated on simulated data from systems of linear and nonlinear connected oscillators. Reasoning behind this method is discussed.
+Causal inference is a large and long-standing field that attempts to answer a very fundamental question: does X cause Y? This question arises in many fields such as healthcare, genomics, biology, and econometrics. The complex systems analyzed in these fields often have many interacting components mathematically represented as nodes and edges (connectivity) of a network. Network inference is the study of the time-dependent behavior of these nodes to reverse-engineer the network connectivity. The theory of causal inference has many contending definitions of causality such as state-of-the-art techniques Granger Causality (GC) and Convergent Cross Mapping (CCM). These algorithms are computationally tractable and easy to use but require strong mathematical assumptions. We simulate networks of harmonic and Kuramoto oscillators and attempt to reconstruct their ground-truth network structure using observations of oscillator displacements over time. Our analysis investigates the performance of inference methods on Erdos-Renyi and scale-free random graphs. We show that the GC and CCM inference methods systematically fail to determine network structure by returning overly sparse or dense connectivity results. These findings challenge the applications of such top-down inference approaches to physical and biological systems. Using a few basic assumptions, we demonstrate how networked systems of coupled oscillators can be successfully reconstructed if perturbations of the system are allowed. We propose a Perturbation Causal Inference (PCI) algorithm that uses systematic perturbations and tracks how perturbation cascades spread through the network. Using changepoint detection, correlation, and windowed variance statistics, we predict causal relationships between nodes in the graph. Our analysis shows that PCI works at scale and efficiently returns high accuracy reconstructions of large networks with varying coupling strengths and connectivity structures. We conclude by proposing future applications of perturbation inference methods into neuroscience and make a connection with Hebbian learning rules.
 \end{abstract}
 
 \section{Introduction and Overview}
@@ -53,39 +54,62 @@ We review in this paper the definitions of Granger Causality and Convergent Cros
 
 \section{Oscillator Systems}
 \subsection{Harmonic Oscillators}
-The standard equation for a damped harmonic oscillator is
+The standard equation for the displacement $x$ of a damped harmonic oscillator with mass $m$, spring constant $k$, and damping constant $c$ is
 \begin{align*}
-\frac{d^2x}{dt^2} = 
+m\frac{d^2x}{dt^2} = -kx - c\frac{dx}{dt}
 \end{align*}
 
+The system we investigate in this paper is $n$ coupled harmonic oscillators where $\mathbf{x}$ is the vector of displacements of all oscillators in the system and $\mathbf{m}$ is the vector of their masses. This network of oscillators has fixed boundary conditions so the 1st and nth oscillators are attached to fixed walls by springs. Also, pairs of oscillators in the network are connected to each other by springs with varying spring constants. A picture of a possible network configuration is shown in Figure [?].
 
-The first system we investigate is that of $n$ coupled harmonic oscillators where $\mathbf{x}$ is the vector of displacements of all oscillators. This network of oscillators has fixed boundary conditions so oscillator 1 and oscillator $n$ are attached to walls by springs. Also, pairs of oscillators in the network are connected to each other by springs with varying spring constants. Strength of coupling between oscillators and walls in this network is denoted by the $n + 1 \times n + 1$ matrix of spring constants
+\begin{figure}
+    \centering
+    \includegraphics[width=14cm]{ExampleNetwork.jpeg}
+    \caption{Example network of 5 harmonic oscillators with fixed boundary conditions and symmetric interactions.}
+    \label{fig:example}
+\end{figure}
+
+Strength of coupling between oscillators and walls in this network is denoted by the $n + 1 \times n + 1$ matrix of spring constants $A$. The spring constant from oscillator $i$ to oscillator $j$ is denoted by $A_{ji}$. Note that in a physical system of harmonic oscillators, the coupled interactions between pairs of oscillators are symmetric so $A_{ij} = A_{ji}$ for all $1 \leq i, j \leq n$.
+
+The system of ODEs that governs the movement of these oscillators is
 \begin{align*}
-a
+\mathbf{m} \circ \frac{d^2\mathbf{x}}{dt^2} = A\mathbf{x} - c\frac{d\mathbf{x}}{dt}
 \end{align*}
-
-Note that in a physical system of harmonic oscillators, the coupled interactions between pairs of oscillators are symmetric so the spring constant $A_{ij}$ from oscillator $i$ to oscillator $j$ is equal to the spring constant $A_{ji}$ from oscillator $j$ to oscillator $i$. Therefore, in this system the matrix $A$ is symmetric. The vector $\mathbf{m}$ contains the masses of all harmonic oscillators in this system and $c$ is the scalar damping coefficient.
-
-A picture of a possible network configuration is shown in Figure [?]. The system of ODEs that governs the movement of these oscillators is
-\begin{align*}
-\mathbf{m} \cdot \frac{d^2\mathbf{x}}{dt^2} = A\mathbf{x} - c\frac{d\mathbf{x}}{dt}
-\end{align*}
+where $\circ$ is the element-wise or Hadamard product. Figure [?] shows the trajectories of a system of 3 coupled harmonic oscillators.
 
 \subsection{Directed Harmonic Oscillators}
+Causality by its nature is a directed relationship where $i$ causes $j$. However, causality is not necessarily symmetric and it is quite possible that $j$ doesn't cause $i$. As an example, rainy weather might cause more people to wear umbrellas but certainly umbrellas do not cause it to rain. Therefore, we are interested in finding how to infer asymmetric or directional causal relationships. In order to test the causal inference methods described in Section 2, we extend our model of coupled harmonic oscillators to have directed interactions between oscillators. Therefore, in equation [?] we relax the symmetry constraint on matrix $A$ so that the coupling strengths $A_{ij}$ and $A_{ji}$ can be different.
+
+Doing so introduces a scenario in which the solutions to this equation are poorly behaved. If at least one of the eigenvalues of the system are nonnegative, the solution to [?] will not converge. Section 7.1 in Appendix A describes how to compute the eigenvalues of this system **update this section**. From this section onwards, in our simulations of directed harmonic oscillators we only use coupling matrices $A$ such that the eigenvalues of [?] are negative.  Figure [?] shows a possible network configuration with asymmetric interactions between nodes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=14cm]{AsymmetricExampleNetwork.jpeg}
+    \caption{Example network of 5 harmonic oscillators with fixed boundary conditions and asymmetric interactions.}
+    \label{fig:example}
+\end{figure}
+
 
 \subsection{Kuramoto Oscillators}
 
 
+
 \section{Numerical Experiments}
-Used MVGC toolbox for GC. Used R toolbox for CCM.
+Used MVGC toolbox for GC. Used rEDM toolbox for CCM.
 
 
+\renewcommand{\thesubsection}{\Alph{subsection}}
 \section{Computational Results}
 \subsection{Inference for Two Oscillator System}
-Figure 1 shows the confusion matrix for GC inference over all possible directed networks of two harmonic or Kuramoto oscillators. As we can see, GC systematically predicts that all two oscillator networks are fully connected.
+Here we investigate the ability of GC and CCM to infer the structure of a two-node network. We evaluate these inference algorithms over all 4 possible two-node networks while varying the connection strengths in the system from 0.1 to 10 collectively. Figure 1 shows the confusion matrix for GC inference over all possible directed networks of two harmonic and Kuramoto oscillators. As we can see, GC makes strongly biased predictions that two oscillator networks are fully connected. The results of CCM inference on the same dataset of all possible two-node harmonic and Kuramoto oscillator networks are shown in Figure 2. CCM has a tendency to underestimate or overestimate the number of connections in these two-node networks and performs poorly on networks with one directed edge.
 
-Figure 2 shows the confusion matrix for CCM inference over all possible directed networks of two harmonic or Kuramoto oscillators. As we can see, CCM systematically predicts that all two oscillator networks are fully connected.
 
+\subsection{Inference on Erdos-Renyi Networks}
+In the next experiments, we evaluate GC and CCM on random Erdos-Renyi networks with 3 or more nodes. Every edge in an Erdos-Renyi network has a probability $p$ that it exists. We generate 20 Erdos-Renyi networks by varying $p$ from 0.05 to 1 and also vary the collective connection strengths from 0.1 to 10.
+
+Figures 3, 4, and 5 show the performance of GC and CCM on these random networks for 3, 4, and 5 nodes respectively.
+
+
+\subsection{Perturbation Inference for Two Oscillator System}
 Figure 3 shows the confusion matrix for PC inference over all possible directed networks of two harmonic or Kuramoto oscillators with one node perturbed.
 
 Figure 4 shows the confusion matrix for PC inference over all possible directed networks of two harmonic or Kuramoto oscillators with both nodes perturbed.
@@ -94,8 +118,8 @@ The performance of PC is shown for different combinations of network connection 
 
 \begin{figure}
     \centering
-    \includegraphics[width=12cm]{GrangerConfusionMatrix.jpeg}
-    \caption{Confusion matrix for GC on networks of two oscillators.}
+    \includegraphics[width=12cm]{TwoNodeConfusionMatrix.jpeg}
+    \caption{Confusion matrix for GC and CCM on networks of two oscillators.}
     \label{fig:example}
 \end{figure}
 
@@ -128,7 +152,7 @@ Give statistics like accuracy, TPR, FPR over different simulations of N oscillat
 
 
 \section{Analysis}
-\subsection{Reasons why Granger Causality Fails for Harmonic Oscillator Systems}
+\subsection{Reasons why Granger Causality works with Perturbed Harmonic Oscillator Data}
 
 
 % Tables for all experiments

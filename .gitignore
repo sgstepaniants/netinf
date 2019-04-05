@@ -1,9 +1,8 @@
 .DS_Store
-Granger/mvgc_v1.0/
-Granger/expPaper1/
-Granger/expPaper2/
-CCM/rEDM/
-PERT/HarmonicExperiments/
-PERT/KuramotoExperiments/
+mvgc_v1.0/
+BAgraph_dir/
+kmeans_opt/
+HarmonicExperiments/
+KuramotoExperiments/
 NN/data/
 

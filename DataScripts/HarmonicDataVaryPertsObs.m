@@ -15,7 +15,7 @@ bc = 'fixed';
 prob = 0.5;
 
 % Gaussian noise function
-noiseVar = 0.1;
+noiseVar = 1;
 noisefn = @(data) WhiteGaussianNoise(data, noiseVar);
 
 % Spring constants in oscillator network
@@ -25,7 +25,7 @@ damping = 0.1;
 
 % Initial conditions and masses
 pfn = @(n) randfn(n, -0.5, 0.5);
-vfn = @(n) randfn(n, -1, 1);
+vfn = @(n) constfn(n, 0);
 mfn = @(n) constfn(n, 1);
 
 % Perturbation force for oscillators

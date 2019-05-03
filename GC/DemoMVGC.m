@@ -76,7 +76,7 @@
 % installation directory for licensing terms.
 %
 %%
-function [mat, diagnostics] = DemoMVGC(X)
+function [mat, diagnostics] = DemoMVGC(X, rhoThresh)
 %% Parameters
 
 ntrials   = size(X, 3);     % number of trials
@@ -175,6 +175,10 @@ end
 acminlags = info.acminlags;
 var_info(info,true); % report results (and bail out on error)
 
+if info.rho > rhoThresh
+    error('Spectral radius is too large and experiment will take too long (skipping)')
+end
+
 %% Granger causality calculation: time domain  (<mvgc_schema.html#3 |A13|>)
 
 % Calculate time-domain pairwise-conditional causalities - this just requires
@@ -216,6 +220,8 @@ mat(1:(nvars+1):end) = 0;
 cd = mean(F(~isnan(F)));
 
 fprintf('\ncausal density = %f\n',cd);
+diagnostics = [0, 0, 0];
+return
 %% Granger causality calculation: frequency domain  (<mvgc_schema.html#3 |A14|>)
 
 % Calculate spectral pairwise-conditional causalities at given frequency

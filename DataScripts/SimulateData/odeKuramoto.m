@@ -16,7 +16,7 @@ function dy = odeKuramoto(t,y,param)
 %       param{2} = [n x n] adjacency matrix, A
 %       param{3} = [n x 1] natural frequencies, w
 %       param{4} = scalar connection strength, K
-%       param{5} = [n x 1] damping coefficients, c
+%       param{5} = [n x m] forcing function, f
 %
 % OUTPUTS:
 %
@@ -30,8 +30,7 @@ function dy = odeKuramoto(t,y,param)
     A = param{2};
     w = param{3};
     K = param{4};
-    c = param{5};
-    f = param{6};
+    f = param{5};
     
     % dp = w + sum over j (k * sin(y(j) - y(i)))
     r = repmat(y,1,n);
@@ -40,5 +39,5 @@ function dy = odeKuramoto(t,y,param)
     % sum over the columns (all the influences) 
     % ijth entry of r' - r should be jth node - ith node
     % example: 5,1 entry is 1st node - 5th node
-    dy = w + (K/n)*sum(A .* sin(r'-r),2) - c.*y + f(t);
+    dy = w + (K/n)*sum(A .* sin(r'-r),2) + f(t);
 end

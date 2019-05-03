@@ -7,7 +7,7 @@ function pertValues = PertCorrs(data, pertIdx, pertTimes, pertLength, pad, corrT
         pertInd = pertIdx(k);
         
         leftBound = max(pertTimes(k) - pad, 1);
-        rightBound = pertTimes(k) + round(pertLength / 2);
+        rightBound = pertTimes(k) + pertLength; %round(pertLength / 2);
         pertWindow = leftBound:rightBound;
         windowData = data(:, pertWindow);
         

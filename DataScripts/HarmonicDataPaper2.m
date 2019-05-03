@@ -1,23 +1,21 @@
-% Simulates three connected spring mass oscillators with fixed boundary
-% conditions. They have random initial positions and are released to
-% oscillate.
+% Simulate unperturbed data and vary connection probabilities and coupling strengths.
 
 clear all; close all; clc;
 addpath('SimulateData/')
 addpath('SimulateData/InitFunctions/')
 
-expNum = 'Paper2';
+expNum = 'Paper5';
 
 % Run MVGC toolbox 10 times and vote for final connectivity matrix.
-nvars = 3;
+nvars = 10;
 
 % Initialize masses, positions, and velocities of oscillators.
-mfn = @(n) constfn(n, 1);
+mfn = @(n) randfn(n, 0.7, 1.3);
 pfn = @(n) randfn(n, -0.5, 0.5);
 vfn = @(n) zeros([n, 1]);
 
 % Specify the damping constant.
-damping = 0;
+damping = 0.25;
 cfn = @(n) constfn(n, damping);
 
 % Define time sampling.
@@ -46,7 +44,7 @@ numStrengths = length(strengths);
 
 % Number of matrices to try for each probability and connection strength
 % combination.
-numMats = 1;
+numMats = 10;
 
 % Number of simulation trials.
 numTrials = 1;
@@ -67,9 +65,9 @@ end
 save(sprintf('%s/params.mat', expPath));
 
 % Create random connectivity matrices and simulate oscillator trajectories.
-dataLog = zeros(nvars, nobs, numTrials, numMats, numProbs, numStrengths);
+dataLog = nan(nvars, nobs, numTrials, numMats, numProbs, numStrengths);
 trueMats = nan(nvars, nvars, numMats, numProbs, numStrengths);
-Ks = zeros(nvars+2, nvars+2, numMats, numProbs, numStrengths);
+Ks = nan(nvars+2, nvars+2, numMats, numProbs, numStrengths);
 for j = 1 : numProbs
     prob = probs(j)
     
@@ -77,18 +75,20 @@ for j = 1 : numProbs
         strength = strengths(k)
         
         l = 1;
-        while l <= numMats
+        count = 1;
+        while l <= numMats && count <= Inf
             % Create adjacency matrices.
             mat = MakeNetworkER(nvars, prob, true);
             K = MakeNetworkTriDiag(nvars+2, false);
             K(2:nvars+1, 2:nvars+1) = mat;
-            K = strength * K;
+            K = strength .* K; %(strength + (rand(nvars+2, nvars+2)-0.5)/2) .* K;
             
             % If any nodes in the network are not connected to the walls or
             % the eigenvalues of the system have positive real parts, don't
             % use this network.
-            [disconnectedNodes, amplitudes] = checkHarmonicMat(K, damping);
-            if ~isempty(disconnectedNodes) || any(amplitudes > 0)
+            [~, amplitudes] = checkHarmonicMat(K, damping);
+            if any(amplitudes > 0) %|| ~isempty(disconnectedNodes)
+                count = count + 1;
                 continue
             end
             

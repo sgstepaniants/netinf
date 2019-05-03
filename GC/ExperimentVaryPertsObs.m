@@ -39,7 +39,6 @@ preprocfn = @(data) data;
 load(sprintf('%s/params.mat', expPath))
 
 predMats = nan(nvars, nvars, numMats, nvars, nvars);
-normLog = nan(nvars, nvars, numMats);
 tprLog = nan(nvars, nvars, numMats);
 fprLog = nan(nvars, nvars, numMats);
 accuracyLog = nan(nvars, nvars, numMats);
@@ -66,8 +65,6 @@ for numObs = nvars:-1:2
         [predMats(:, :, :, numObs, numPerts), ~, tableResults] = ...
             GrangerBaseExperiment(dataLog, trueMats, numTrials, reps, preprocfn, freq, resultPath, dataObsIdx);
         
-        tableResultsLog(numObs, numPerts).norm = tableResults.norm;
-        tableResultsLog(numObs, numPerts).normVoting = tableResults.normVoting;
         tableResultsLog(numObs, numPerts).tpr = tableResults.tpr;
         tableResultsLog(numObs, numPerts).tprVoting = tableResults.tprVoting;
         tableResultsLog(numObs, numPerts).fpr = tableResults.fpr;
@@ -76,14 +73,12 @@ for numObs = nvars:-1:2
         tableResultsLog(numObs, numPerts).accVoting = tableResults.accVoting;
         tableResultsLog(numObs, numPerts).diagnostics = tableResults.diagnostics;
         
-        normLog(numObs, numPerts, :) = tableResults.normVoting;
         tprLog(numObs, numPerts, :) = tableResults.tprVoting;
         fprLog(numObs, numPerts, :) = tableResults.fprVoting;
         accuracyLog(numObs, numPerts, :) = tableResults.accVoting;
         
         save(sprintf('%s/predMats.mat', resultPath), 'predMats');
         save(sprintf('%s/tableResultsLog.mat', resultPath), 'tableResultsLog');
-        save(sprintf('%s/normLog.mat', resultPath), 'normLog');
         save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
         save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
         save(sprintf('%s/accuracyLog.mat', resultPath), 'accuracyLog');

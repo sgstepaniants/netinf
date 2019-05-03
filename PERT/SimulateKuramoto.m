@@ -5,10 +5,10 @@ clear all; close all; clc;
 addpath('../SimulateData/')
 addpath('../SimulateData/InitFunctions/')
 
-nvars = 20;
+nvars = 5;
 
-endtime = 100;
-deltat = 0.1;
+endtime = 10;
+deltat = 0.01;
 nobs = round(endtime / deltat);
 tSpan = linspace(0, endtime, nobs);
 
@@ -22,11 +22,11 @@ damping = 0;
 
 pfn = @(n) 2*pi*rand([n, 1]); % uniform [0, 2pi]
 wfn = @(n) 2*rand([n, 1]) - 1; % uniform [-1, 1]
-cfn = @(n) constcfn(n, damping);
+cfn = @(n) constfn(n, damping);
 
 % forcing function
 pertForce = 50;
-pertIdx = 1:20;
+pertIdx = 1;
 numPerts = length(pertIdx);
 times = round(linspace(0, nobs, numPerts+2));
 pertTimes = times(2:end-1);

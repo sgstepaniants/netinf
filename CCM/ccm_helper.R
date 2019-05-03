@@ -5,21 +5,23 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
   
   for (i in 1:nvars) {
     for (j in 1:nvars) {
-      sum_rho_graph <- numeric(length(lib_sizes))
-      for (t in 1:num_trials) {
-        xmap <- ccm(t(data[,,t]), E=E, lib_column=i, 
-                    target_column=j, lib_sizes=lib_sizes,
-                    num_samples=num_samples, random_libs=TRUE, replace=TRUE);
-        xmap_means <- ccm_means(xmap)
-        
-        ccm_rho_graphs[i, j,, t] <- pmax(0, xmap_means$rho)
-        
-        plot(xmap_means$lib_size, pmax(0, xmap_means$rho), type = "l", col = "red", xlab = "Library Size", 
-             ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = paste(j, "causes", i))
-        legend(x = "topleft", legend = paste(i, "xmap", j),
-               col = c("red"), lwd = 1, bty = "n", inset = 0.02, cex = 0.8)
+      if (i != j) {
+        sum_rho_graph <- numeric(length(lib_sizes))
+        for (t in 1:num_trials) {
+          xmap <- ccm(t(data[,,t]), E=E, lib_column=i, 
+                      target_column=j, lib_sizes=lib_sizes,
+                      num_samples=num_samples, random_libs=TRUE, replace=TRUE);
+          xmap_means <- ccm_means(xmap)
+          
+          ccm_rho_graphs[i, j,, t] <- pmax(0, xmap_means$rho)
+          
+          #plot(xmap_means$lib_size, pmax(0, xmap_means$rho), type = "l", col = "red", xlab = "Library Size", 
+          #     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = paste(j, "causes", i))
+          #legend(x = "topleft", legend = paste(i, "xmap", j),
+          #       col = c("red"), lwd = 1, bty = "n", inset = 0.02, cex = 0.8)
+        }
+        print(paste(j, "causes", i))
       }
-      print(paste("xmap", i, j))
     }
   }
   

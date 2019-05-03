@@ -1,4 +1,4 @@
-function Y = GenerateKuramotoData(A, tSpan, N, K, randpfn, randwfn, randcfn, forcingFunc)
+function Y = GenerateKuramotoData(A, tSpan, N, K, randpfn, randwfn, forcingFunc)
 %
 % calls kuramoto.m to return solution of Kuramoto model
 %
@@ -50,9 +50,8 @@ function Y = GenerateKuramotoData(A, tSpan, N, K, randpfn, randwfn, randcfn, for
     for j = 1:N
         startpos = randpfn(n);
         freq = randwfn(n);
-        damping = randcfn(n);
         
-        y = kuramoto(startpos,A,freq,damping,tSpan,K,forcingFunc);
+        y = kuramoto(startpos, A, freq, tSpan, K, forcingFunc);
         Y(:,:,j) = y;
     end
     

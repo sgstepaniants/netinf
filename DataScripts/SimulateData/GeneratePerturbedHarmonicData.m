@@ -3,7 +3,7 @@ function [data, pertTimes, pertLength] = GeneratePerturbedHarmonicData(nvars, K,
     
     [disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping, pertForce);
     if ~isempty(disconnectedNodes)
-        error('Network has disconnection components')
+        error('Network has disconnected components')
     elseif any(amplitudes > -0.00001)
         error('Linear system has nonnegative eigenvalues')
     elseif waitTime > 500
@@ -26,6 +26,6 @@ function [data, pertTimes, pertLength] = GeneratePerturbedHarmonicData(nvars, K,
 
     % Generate data with forced perturbations.
     cfn = @(n) constfn(n, damping);
-    data = GenerateNNCoupledData(nvars, tSpan, N, K, pfn, vfn, ...
+    data = GenerateHarmonicData(nvars, tSpan, N, K, pfn, vfn, ...
         mfn, cfn, bc, forcingFunc);
 end

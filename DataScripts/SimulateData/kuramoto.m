@@ -1,4 +1,4 @@
-function Y = kuramoto(p,adj,w,c,tSpan,K, forcingFunc)
+function Y = kuramoto(p, adj, w, tSpan, K, forcingFunc)
 % calls ode45 to solve kuramoto model
 % 
 % INPUTS:
@@ -11,10 +11,6 @@ function Y = kuramoto(p,adj,w,c,tSpan,K, forcingFunc)
 % 
 % w 
 %       an [n x 1] vector of natural frequencies, one for each node
-%       in the network
-%
-% c 
-%       an [n x 1] vector of damping coefficients, one for each node
 %       in the network
 %
 % tSpan
@@ -36,12 +32,11 @@ function Y = kuramoto(p,adj,w,c,tSpan,K, forcingFunc)
     param{2} = adj; % adjacency matrix
     param{3} = w; % natural frequencies
     param{4} = K; % connection strength
-    param{5} = c; % damping coefficients
     
     if nargin < 7
         forcingFunc = zeros(n, length(tSpan));
     end
-    param{6} = @(t) forcingFunc(:, findClosestTime(t, tSpan));
+    param{5} = @(t) forcingFunc(:, findClosestTime(t, tSpan));
     
     % Solve until the first terminal event
     SOL = ode45(@(t, y) odeKuramoto(t, y, param), tSpan, p);

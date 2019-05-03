@@ -18,9 +18,6 @@ prob = 0.5;
 noiseVar = 0;
 noisefn = @(data) WhiteGaussianNoise(data, noiseVar);
 
-% Damping coefficient
-damping = 0;
-
 % Delta t
 deltat = 0.1;
 
@@ -68,7 +65,7 @@ end
 save(sprintf('%s/params.mat', expPath));
 
 
-%% Siumlate Data with Varying Numbers of Perturbations
+%% Simulate Data with Varying Numbers of Perturbations
 dataLog = cell(nvars, nvars, numTrials);
 trueMats = cell(nvars, nvars, numTrials);
 dataParamsLog = cell(nvars, nvars, numTrials, 4);

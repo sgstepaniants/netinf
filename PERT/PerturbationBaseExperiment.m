@@ -1,6 +1,8 @@
-function [votingMats, est, tableResults] = PerturbationBaseExperiment(data, mats, preprocfn, reps, freq, resultPath, dataObsIdx)
+function [est, tableResults] = PerturbationBaseExperiment(data, ...
+    mats, numTrials, preprocfn, dataObsIdx, dataPertIdx, dataPertTimes, ...
+    dataPertLength, method, corrThresh, pad, movvarWidth, freq, resultPath)
     saveData = true;
-    if nargin < 6
+    if nargin < 14
         saveData = false;
     end
     
@@ -11,27 +13,14 @@ function [votingMats, est, tableResults] = PerturbationBaseExperiment(data, mats
     
     nvars = size(mats, 1); % number of variables / oscillators
     numMats = size(mats,3); % number of matrices we try
-    if nargin < 7
-        dataObsIdx = true([numMats, nvars]);
-    end
-    
-    numTrials = size(data, 3); % number of simulation trials
 
     % Tables to hold results
-    tableResultsNorm = nan(reps, numMats);
-    tableResultsNormVoting = nan(1, numMats);
-    tableResultsDiagnostics = nan(reps, numMats, 3);
-    tableResultsTPR = nan(reps, numMats);
-    tableResultsTPRVoting = nan(1, numMats);
-    tableResultsFPR = nan(reps, numMats);
-    tableResultsFPRVoting = nan(1, numMats);
-    tableResultsAcc = nan(reps, numMats);
-    tableResultsAccVoting = nan(1, numMats);
-
-    votingMats = nan(nvars, nvars, numMats);
+    tableResultsTPR = nan(numTrials, numMats);
+    tableResultsFPR = nan(numTrials, numMats);
+    tableResultsAcc = nan(numTrials, numMats);
     
     % est holds GC's estimate of the networks
-    est = nan(nvars, nvars, reps, numMats);
+    est = nan(nvars, nvars, numTrials, numMats);
 
     count = 1; % number of times we have run network inference method (so know how often to save work)
 
@@ -39,39 +28,47 @@ function [votingMats, est, tableResults] = PerturbationBaseExperiment(data, mats
     for j = 1 : numMats
         obsIdx = dataObsIdx(j, :);
         numObs = nnz(obsIdx);
+        pertIdx = dataPertIdx(j, :);
+        pertTimes = dataPertTimes(j, :);
+        pertLength = dataPertLength(j);
         
         truth = mats(:, :, j);
         numPositives = nnz(truth(obsIdx, obsIdx) .* ~eye(numObs));
         numNegatives = nnz(~truth(obsIdx, obsIdx) .* ~eye(numObs));
 
         % For each rep, different random frequencies, initial conditions, and noise
-        for r = 1 : reps
-            % Read data and split up simulation trials into repetitions
-            repSize = floor(numTrials/reps);
-            trialRange = (r-1)*repSize+1:r*repSize;
-            
+        for trial = 1 : numTrials
             if iscell(data)
                 X = data{j};
-                X = preprocfn(X(obsIdx, :, trialRange));
+                X = preprocfn(X(obsIdx, :, trial));
             else
-                X = preprocfn(data(obsIdx, :, trialRange, j));
+                X = preprocfn(data(obsIdx, :, trial, j));
             end
 
             % Run network inference on this data
             try
-                [est(obsIdx, obsIdx, r, j), diagnostics] = DemoMVGC(X);
+                [AprobHist, predPertOrders] = CreateProbabilityMatrix(X, ...
+                                                                pertIdx, obsIdx, pertTimes, ...
+                                                                pertLength, method, corrThresh, pad, movvarWidth);
             catch e
                 fprintf('%s\n', e.identifier)
                 fprintf('%s\n', e.message)
                 continue
             end
+            
+            % Get the true perturbation orders.
+            truePertOrders = TruePertOrders(truth, pertIdx, obsIdx);
+
+            % Get the network reconstruction our algorithm produces.
+            AprobFinal = AprobHist(:, :, end);
+            predMat = double(AprobFinal > 0.5);
+            predMat(isnan(AprobFinal)) = NaN;
+            est(:, :, trial, j) = predMat;
 
             % Save results
-            tableResultsNorm(r, j) = norm(est(:, :, r, j) - truth) / norm(truth);
-            tableResultsDiagnostics(r, j, :) = diagnostics;
-            tableResultsTPR(r, j) = nnz((est(:, :, r, j) + truth == 2) .* ~eye(nvars)) / numPositives;
-            tableResultsFPR(r, j) = nnz((est(:, :, r, j) - truth == 1) .* ~eye(nvars)) / numNegatives;
-            tableResultsAcc(r, j) = nnz((est(:, :, r, j) == truth) .* ~eye(nvars)) / (numObs^2-numObs);
+            tableResultsTPR(trial, j) = nnz((predMat + truth == 2) .* ~eye(nvars)) / numPositives;
+            tableResultsFPR(trial, j) = nnz((predMat - truth == 1) .* ~eye(nvars)) / numNegatives;
+            tableResultsAcc(trial, j) = nnz((predMat == truth) .* ~eye(nvars)) / (numObs^2-numObs);
 
             if saveData && mod(count, freq) == 0
                 % save necessary files
@@ -79,20 +76,9 @@ function [votingMats, est, tableResults] = PerturbationBaseExperiment(data, mats
             
             count = count + 1;
         end
-
-        votingMat = round(nanmean(est(:, :, :, j), 3));
-        votingMats(:, :, j) = votingMat;
-        tableResultsNormVoting(j) = norm(votingMat - truth) / norm(truth);
-        tableResultsTPRVoting(j) = nnz((votingMat + truth == 2) .* ~eye(nvars)) / numPositives;
-        tableResultsFPRVoting(j) = nnz((votingMat - truth == 1) .* ~eye(nvars)) / numNegatives;
-        tableResultsAccVoting(j) = nnz((votingMat == truth) .* ~eye(nvars)) / (numObs^2-numObs);
     end
     
-    tableResults = struct('norm', tableResultsNorm, 'normVoting', tableResultsNormVoting, ...
-                    'tpr', tableResultsTPR, 'tprVoting', tableResultsTPRVoting, ...
-                    'fpr', tableResultsFPR, 'fprVoting', tableResultsFPRVoting, ...
-                    'acc', tableResultsAcc, 'accVoting', tableResultsAccVoting, ...
-                    'diagnostics', tableResultsDiagnostics);
+    tableResults = struct('tpr', tableResultsTPR, 'fpr', tableResultsFPR, 'acc', tableResultsAcc);
 
     % TODO: Save whole workspace (including all those tables of results)
     if saveData

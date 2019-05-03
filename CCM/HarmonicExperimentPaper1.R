@@ -35,8 +35,8 @@ true_mats <- readMat(sprintf("%s/trueMats.mat", exp_path))[[1]]
 
 # Perform CCM analysis on sample data
 E <- 3
-num_libs <- 10
-num_trials <- 1
+num_libs <- 1
+num_trials <- 10
 num_samples <- 100
 
 exp_params <- list("E"=E, "num_libs"=num_libs, "num_trials"=num_trials, "num_samples"=num_samples)

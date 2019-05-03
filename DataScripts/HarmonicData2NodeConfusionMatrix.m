@@ -12,8 +12,9 @@ expNum = 'Paper1';
 nvars = 2;
 
 % Initialize masses, positions, and velocities of oscillators.
+mfn = @(n) constfn(n, 1);
 pfn = @(n) randfn(n, -0.5, 0.5);
-wfn = @(n) randfn(n, -1, 1);
+vfn = @(n) zeros([n, 1]);
 
 % Specify the damping constant.
 damping = 0;
@@ -26,11 +27,14 @@ nobs = round(endtime / deltat); % number of time points (observations)
 tSpan = linspace(0, endtime, nobs);
 
 % Specify noise and prepocessing for data.
-measParam = 0.01;
+measParam = 0.1;
 noisefn  = @(data) WhiteGaussianNoise(data, measParam);
 
 % Specify forcing function for oscillators.
 forcingFunc = zeros([nvars, nobs]);
+
+% Specify boundary conditions.
+bc = 'fixed';
 
 % Number of connectivity matrices to generate.
 numMats = 400;
@@ -40,7 +44,7 @@ numTrials = 100;
 
 % Make directory to hold data files if one does not already exist
 expName = sprintf('EXP%s', expNum);
-expPath = sprintf('../KuramotoExperiments/%s', expName);
+expPath = sprintf('../HarmonicExperiments/%s', expName);
 if exist(expPath, 'dir') ~= 7
     mkdir(expPath)
 else
@@ -60,17 +64,23 @@ trueMats(:, :, 101:200) = repmat([0, 0; 1, 0], [1, 1, 100]);   % node 1 causes n
 trueMats(:, :, 201:300) = repmat([0, 1; 0, 0], [1, 1, 100]);   % node 2 causes node 1
 trueMats(:, :, 301:400) = repmat([0, 1; 1, 0], [1, 1, 100]);   % both nodes cause each other
 
-% Make a vector of connection strengths.
-Ks = repmat(0.1 : 0.1 : 10, [1, 4]);
+% Turn these connectivity matrices into matrices of spring constants (connection strengths).
+springConsts = repmat(0.1 : 0.1 : 10, [1, 4]);
+Ks = nan(nvars+2, nvars+2, numMats);
+for j = 1 : numMats
+    K = MakeNetworkTriDiag(nvars+2, false);
+    K(2:nvars+1, 2:nvars+1) = trueMats(:, :, j);
+    K = springConsts(j) * K;
+    Ks(:, :, j) = K;
+end
 
 % Simulate oscillator trajectories.
-dataLog = zeros(nvars, nobs, numTrials, numMats);
+dataLog = nan(nvars, nobs, numTrials, numMats);
 for j = 1 : numMats
     fprintf('Computing simulations for matrix %d\n', j)
-    A = trueMats(:, :, j);
-    K = Ks(j);
-    data = GenerateKuramotoData(A, tSpan, ...
-        numTrials, K, pfn, wfn, cfn, forcingFunc);
+    K = Ks(:, :, j);
+    data = GenerateHarmonicData(nvars, tSpan, ...
+        numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
     noisyData = noisefn(data);
     dataLog(:, :, :, j) = noisyData;
 end

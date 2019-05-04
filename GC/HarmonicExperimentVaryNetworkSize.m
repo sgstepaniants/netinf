@@ -92,7 +92,7 @@ accuracyLog = nan(numSizes, numMats);
 diagnosticsLog = nan(numSizes, numMats, 3);
 tableResultsLog = repmat(struct([]), [numSizes, numMats]);
 
-for j = 8 : numSizes
+for j = 9 : numSizes
     nvars = networkSizes(j);
     
     trueMats{j} = nan([nvars, nvars, numMats]);

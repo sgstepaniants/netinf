@@ -93,9 +93,13 @@ diagnosticsLog = nan(numSizes * numMats, 3);
 
 % Number of parallel processes
 M = 12;
+c=progress(numSizes * numMats);
 parfor (idx = 1 : numSizes * numMats, M)
     [j, l] = ind2sub([numSizes, numMats], idx);
     fprintf('size: %d, mat: %d\n', j, l)
+    
+    % Count the number of iterations done by the parfor loop
+    c.count();
     
     nvars = networkSizes(j);
     
@@ -142,8 +146,6 @@ parfor (idx = 1 : numSizes * numMats, M)
         fprLog(idx) = tableResults.fpr;
         accuracyLog(idx) = tableResults.acc;
         diagnosticsLog(idx, :) = tableResults.diagnostics;
-
-        l = l + 1;
         break
     end
 end

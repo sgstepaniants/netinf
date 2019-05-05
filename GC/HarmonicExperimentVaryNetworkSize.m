@@ -4,7 +4,7 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 
 expNum = 'PaperVaryNetworkSize';
 
-networkSizes = 2:2:20;
+networkSizes = 2:4;
 numSizes = length(networkSizes);
 
 % Initialize masses, positions, and velocities of oscillators.
@@ -36,7 +36,7 @@ prob = 0.5;
 strength = 1;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 3;
 
 % Number of simulation trials per repetition.
 numTrials = 10;
@@ -95,16 +95,9 @@ diagnosticsLog = nan(numSizes * numMats, 3);
 M = 12;
 parfor (idx = 1 : numSizes * numMats, M)
     [j, l] = ind2sub([numSizes, numMats], idx);
-    fprintf('numSizes: %d, numMats: %d\n', j, l)
+    fprintf('size: %d, mat: %d\n', j, l)
     
     nvars = networkSizes(j);
-    
-    if mod(l - 1, numMats)
-        currDataLog = nan(nvars, length(tSpan), numTrials, numMats);
-        currTrueMats = nan(nvars, nvars, numMats);
-        currKs = nan(nvars + 2, nvars + 2, numMats);
-        currPredMats = nan(nvars, nvars, numMats);
-    end
     
     while true
         % Create adjacency matrices.
@@ -139,7 +132,7 @@ parfor (idx = 1 : numSizes * numMats, M)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
-
+        
         dataLog{idx} = noisyData;
         trueMats{idx} = mat;
         Ks{idx} = K;
@@ -160,7 +153,7 @@ dataLog = reshape(dataLog, numSizes, numMats);
 trueMats = reshape(trueMats, numSizes, numMats);
 Ks = reshape(Ks, numSizes, numMats);
 predMats = reshape(predMats, numSizes, numMats);
-numRerun = reshape(numRerun, [numSizes, numMats]);
+numRerun = sum(reshape(numRerun, [numSizes, numMats]), 2);
 tprLog = reshape(tprLog, [numSizes, numMats]);
 fprLog = reshape(fprLog, [numSizes, numMats]);
 accuracyLog = reshape(accuracyLog, [numSizes, numMats]);

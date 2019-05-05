@@ -75,77 +75,96 @@ end
 %% Generate Data and Run Granger Causality Experiments
 
 % Create random connectivity matrices and simulate oscillator trajectories.
-dataLog = cell(numMats, numSizes);
-trueMats = cell(1, numSizes);
-Ks = cell(1, numSizes);
+dataLog = cell(1, numSizes * numMats);
+trueMats = cell(1, numSizes * numMats);
+Ks = cell(1, numSizes * numMats);
 
 % Run Granger Causality to infer network connections.
 freq = 1;
 preprocfn = @(data) standardize(data);
 save(sprintf('%s/expParams.mat', resultPath), 'freq', 'preprocfn')
 
-predMats = cell(1, numSizes);
-numRerun = zeros(1, numSizes);
-tprLog = nan(numSizes, numMats);
-fprLog = nan(numSizes, numMats);
-accuracyLog = nan(numSizes, numMats);
-diagnosticsLog = nan(numSizes, numMats, 3);
-tableResultsLog = repmat(struct([]), [numSizes, numMats]);
+predMats = cell(1, numSizes * numMats);
+numRerun = zeros(1, numSizes * numMats);
+tprLog = nan(1, numSizes * numMats);
+fprLog = nan(1, numSizes * numMats);
+accuracyLog = nan(1, numSizes * numMats);
+diagnosticsLog = nan(numSizes * numMats, 3);
 
-for j = 9 : numSizes
+% Number of parallel processes
+M = 12;
+parfor (idx = 1 : numSizes * numMats, M)
+    [j, l] = ind2sub([numSizes, numMats], idx);
+    fprintf('numSizes: %d, numMats: %d\n', j, l)
+    
     nvars = networkSizes(j);
     
-    trueMats{j} = nan([nvars, nvars, numMats]);
-    Ks{j} = nan([nvars + 2, nvars + 2, numMats]);
-    predMats{j} = nan([nvars, nvars, numMats]);
+    if mod(l - 1, numMats)
+        currDataLog = nan(nvars, length(tSpan), numTrials, numMats);
+        currTrueMats = nan(nvars, nvars, numMats);
+        currKs = nan(nvars + 2, nvars + 2, numMats);
+        currPredMats = nan(nvars, nvars, numMats);
+    end
     
-    % Specify forcing function for oscillators.
-    forcingFunc = zeros([nvars, nobs]);
-
-    l = 1;
-    while l <= numMats
+    while true
         % Create adjacency matrices.
         mat = MakeNetworkER(nvars, prob, true);
         K = MakeNetworkTriDiag(nvars+2, false);
         K(2:nvars+1, 2:nvars+1) = mat;
         K = strength * K;
-
+        
         % If any nodes in the network are not connected to the walls or
         % the eigenvalues of the system have positive real parts, don't
         % use this network.
         [~, amplitudes] = checkHarmonicMat(K, damping);
         if any(amplitudes > 0)
-            numRerun(j) = numRerun(j) + 1;
+            numRerun(idx) = numRerun(idx) + 1;
             continue
         end
+        
+        % Specify forcing function for oscillators.
+        forcingFunc = zeros([nvars, nobs]);
 
         % Simulate oscillator trajectories.
+        fprintf('Generate Data\n')
         data = GenerateHarmonicData(nvars, tSpan, ...
                 numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
+        fprintf('Run Experiment\n')
         [est, tableResults] = GrangerBaseExperiment(noisyData, ...
                 mat, preprocfn, freq, '', dataObsIdx, rhoThresh);
         if isnan(est)
-            numRerun(j) = numRerun(j) + 1;
+            numRerun(idx) = numRerun(idx) + 1;
             continue
         end
 
-        dataLog{l, j} = noisyData;
-        trueMats{j}(:, :, l) = mat;
-        Ks{j}(:, :, l) = K;
+        dataLog{idx} = noisyData;
+        trueMats{idx} = mat;
+        Ks{idx} = K;
+        predMats{idx} = est;
 
-        predMats{j}(:, :, l) = est;
-
-        tprLog(j, l) = tableResults.tpr;
-        fprLog(j, l) = tableResults.fpr;
-        accuracyLog(j, l) = tableResults.acc;
-        diagnosticsLog(j, l, :) = tableResults.diagnostics;
+        tprLog(idx) = tableResults.tpr;
+        fprLog(idx) = tableResults.fpr;
+        accuracyLog(idx) = tableResults.acc;
+        diagnosticsLog(idx, :) = tableResults.diagnostics;
 
         l = l + 1;
+        break
     end
 end
+
+% Reshape data structures
+dataLog = reshape(dataLog, numSizes, numMats);
+trueMats = reshape(trueMats, numSizes, numMats);
+Ks = reshape(Ks, numSizes, numMats);
+predMats = reshape(predMats, numSizes, numMats);
+numRerun = reshape(numRerun, [numSizes, numMats]);
+tprLog = reshape(tprLog, [numSizes, numMats]);
+fprLog = reshape(fprLog, [numSizes, numMats]);
+accuracyLog = reshape(accuracyLog, [numSizes, numMats]);
+diagnosticsLog = reshape(diagnosticsLog, [numSizes, numMats, 3]);
 
 % Save experiment simulated data and connectivity matrices.
 save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
@@ -154,7 +173,6 @@ save(sprintf('%s/Ks.mat', expPath), 'Ks');
 
 % Save experiment results
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/tableResultsLog.mat', resultPath), 'tableResultsLog');
 save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
 save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
 save(sprintf('%s/accuracyLog.mat', resultPath), 'accuracyLog');

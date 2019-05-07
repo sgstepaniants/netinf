@@ -2,19 +2,14 @@ clear all; close all; clc;
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
-expNum = 'VaryStrengthsProbs_Size5';
+expNum = 'PaperVaryNetworkSize_10Trials';
 
-% Network size
-nvars = 5;
+networkSizes = 2:2:20;
+numSizes = length(networkSizes);
 
 % Initialize masses, positions, and velocities of oscillators.
-mfn = @(n) constfn(n, 1); %randfn(n, 0.7, 1.3);
 pfn = @(n) randfn(n, -0.5, 0.5);
-vfn = @(n) zeros([n, 1]);
-
-% Specify the damping constant.
-damping = 0.2;
-cfn = @(n) constfn(n, damping);
+wfn = @(n) randfn(n, -1, 1);
 
 % Define time sampling.
 deltat = 0.1; % space between time points
@@ -26,25 +21,16 @@ tSpan = linspace(0, endtime, nobs);
 measParam = 0.1;
 noisefn  = @(data) WhiteGaussianNoise(data, measParam);
 
-% Specify forcing function for oscillators.
-forcingFunc = zeros([nvars, nobs]);
+% Probabilities of network connections.
+prob = 0.5;
 
-% Specify boundary conditions.
-bc = 'fixed';
+% Connection strength.
+strength = 1;
 
-% Probabilities of network connections to try.
-probs = 0.1:0.1:1;
-numProbs = length(probs);
-
-% Connection strengths to try.
-strengths = 1:1:10;
-numStrengths = length(strengths);
-
-% Number of matrices to try for each probability and connection strength
-% combination.
+% Number of matrices to average results over.
 numMats = 100;
 
-% Number of simulation trials.
+% Number of simulation trials per repetition.
 numTrials = 10;
 
 % Spectral radius threshold for MVGC toolbox.
@@ -53,7 +39,7 @@ rhoThresh = 0.995;
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
-expPath = sprintf('../HarmonicExperiments/%s', expName);
+expPath = sprintf('../KuramotoExperiments/%s', expName);
 if exist(expPath, 'dir') ~= 7
     mkdir(expPath)
 else
@@ -81,66 +67,66 @@ end
 %% Generate Data and Run Granger Causality Experiments
 
 % Create random connectivity matrices and simulate oscillator trajectories.
-dataLog = nan(nvars, nobs, numTrials, numProbs * numStrengths * numMats);
-trueMats = nan(nvars, nvars, numProbs * numStrengths * numMats);
-Ks = nan(nvars+2, nvars+2, numProbs * numStrengths * numMats);
+dataLog = cell(1, numSizes * numMats);
+trueMats = cell(1, numSizes * numMats);
 
 % Run Granger Causality to infer network connections.
 freq = 1;
-preprocfn = @(data) standardize(data);
+preprocfn = @(data) cos(data);
 save(sprintf('%s/expParams.mat', resultPath), 'freq', 'preprocfn')
 
-predMats = nan(nvars, nvars, numProbs * numStrengths * numMats);
-numRerun = zeros(1, numProbs * numStrengths * numMats);
-tprLog = nan(1, numProbs * numStrengths * numMats);
-fprLog = nan(1, numProbs * numStrengths * numMats);
-accuracyLog = nan(1, numProbs * numStrengths * numMats);
-diagnosticsLog = nan(numProbs * numStrengths * numMats, 3);
+predMats = cell(1, numSizes * numMats);
+numRerun = zeros(1, numSizes * numMats);
+tprLog = nan(1, numSizes * numMats);
+fprLog = nan(1, numSizes * numMats);
+accuracyLog = nan(1, numSizes * numMats);
+diagnosticsLog = nan(numSizes * numMats, 3);
 
 % Number of parallel processes
 M = 12;
-c = progress(numProbs * numStrengths * numMats);
-parfor (idx = 1 : numProbs * numStrengths * numMats, M)
-    [j, k, l] = ind2sub([numProbs, numStrengths, numMats], idx);
-    prob = probs(j);
-    strength = strengths(k);
+c = progress(numSizes * numMats);
+parfor (idx = 1 : numSizes * numMats, M)
+    [j, l] = ind2sub([numSizes, numMats], idx);
+    fprintf('size: %d, mat: %d\n', j, l)
     
+    % Count the number of iterations done by the parfor loop
     c.count();
+    
+    nvars = networkSizes(j);
     
     while true
         % Create adjacency matrices.
         mat = MakeNetworkER(nvars, prob, true);
-        K = MakeNetworkTriDiag(nvars+2, false);
-        K(2:nvars+1, 2:nvars+1) = mat;
-        K = strength .* K;
-
+        
         % If any nodes in the network are not connected to the walls or
         % the eigenvalues of the system have positive real parts, don't
         % use this network.
-        [~, amplitudes] = checkHarmonicMat(K, damping);
-        if any(amplitudes > 0)
+        disconnectedNodes = checkHarmonicMat(mat, 0);
+        if ~isempty(disconnectedNodes)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
+        
+        % Specify forcing function for oscillators.
+        forcingFunc = zeros([nvars, nobs]);
 
         % Simulate oscillator trajectories.
-        data = GenerateHarmonicData(nvars, tSpan, ...
-                numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
+        fprintf('Generate Data\n')
+        data = GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
+        fprintf('Run Experiment\n')
         [est, tableResults] = GrangerBaseExperiment(noisyData, ...
-            mat, preprocfn, freq, '', dataObsIdx, rhoThresh);
+                mat, preprocfn, freq, '', dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
-
-        dataLog(:, :, :, idx) = noisyData;
-        trueMats(:, :, idx) = mat;
-        Ks(:, :, idx) = K;
-
-        predMats(:, :, idx) = est;
+        
+        dataLog{idx} = noisyData;
+        trueMats{idx} = mat;
+        predMats{idx} = est;
 
         tprLog(idx) = tableResults.tpr;
         fprLog(idx) = tableResults.fpr;
@@ -151,20 +137,18 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
 end
 
 % Reshape data structures
-dataLog = reshape(dataLog, [nvars, nobs, numTrials, numProbs, numStrengths, numMats]);
-trueMats = reshape(trueMats, [nvars, nvars, numProbs, numStrengths, numMats]);
-Ks = reshape(Ks, [nvars + 2, nvars + 2, numProbs, numStrengths, numMats]);
-predMats = reshape(predMats, [nvars, nvars, numProbs, numStrengths, numMats]);
-numRerun = sum(reshape(numRerun, [numProbs, numStrengths, numMats]), 3);
-tprLog = reshape(tprLog, [numProbs, numStrengths, numMats]);
-fprLog = reshape(fprLog, [numProbs, numStrengths, numMats]);
-accuracyLog = reshape(accuracyLog, [numProbs, numStrengths, numMats]);
-diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
+dataLog = reshape(dataLog, numSizes, numMats);
+trueMats = reshape(trueMats, numSizes, numMats);
+predMats = reshape(predMats, numSizes, numMats);
+numRerun = sum(reshape(numRerun, [numSizes, numMats]), 2);
+tprLog = reshape(tprLog, [numSizes, numMats]);
+fprLog = reshape(fprLog, [numSizes, numMats]);
+accuracyLog = reshape(accuracyLog, [numSizes, numMats]);
+diagnosticsLog = reshape(diagnosticsLog, [numSizes, numMats, 3]);
 
 % Save experiment simulated data and connectivity matrices.
 save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
 save(sprintf('%s/trueMats.mat', expPath), 'trueMats');
-save(sprintf('%s/Ks.mat', expPath), 'Ks');
 
 % Save experiment results
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');
@@ -179,54 +163,41 @@ save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
 
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(flipud(numRerun))
-colorbar
+plot(networkSizes, numRerun)
 title('Number of Simulations Rerun by Our Analysis')
-xlabel('Connection Strength')
-ylabel('Connection Probability')
-set(gca, 'XTickLabel', strengths);
-set(gca, 'YTickLabel', probs);
-set(gca,'YDir','normal')
-
+xlabel('Network Size')
+ylabel('Number of Times Experiment Rerun')
+xlim([networkSizes(1) networkSizes(end)])
 
 % Show average accuracies for each number of perturbations and
 % observations.
-aveAccuracies = nanmean(accuracyLog, 3);
+aveAccuracies = nanmean(accuracyLog, 2);
 figure(2)
-clims = [0, 1];
-imagesc(flipud(aveAccuracies), clims)
-colorbar
+plot(networkSizes, aveAccuracies)
 title('Average Accuracy over Simulations')
-xlabel('Connection Strength')
-ylabel('Connection Probability')
-set(gca, 'XTickLabel', strengths);
-set(gca, 'YTickLabel', probs);
-set(gca,'YDir','normal')
-
+xlabel('Network Size')
+ylabel('Accuracy')
+xlim([networkSizes(1) networkSizes(end)]) 
+ylim([0 1])
 
 % Show average TPR for each number of perturbations and
 % observations.
-aveTPR = nanmean(tprLog, 3);
+aveTPR = nanmean(tprLog, 2);
 figure(3)
-clims = [0, 1];
-imagesc(flipud(aveTPR), clims)
-colorbar
+plot(networkSizes, aveTPR)
 title('Average TPR over Simulations')
-xlabel('Connection Strength')
-ylabel('Connection Probability')
-set(gca, 'XTickLabel', strengths);
-set(gca, 'YTickLabel', probs);
-set(gca,'YDir','normal')
-
+xlabel('Network Size')
+ylabel('TPR')
+xlim([networkSizes(1) networkSizes(end)]) 
+ylim([0 1])
 
 % Show average FPR for each number of perturbations and
 % observations.
-aveFPR = nanmean(fprLog, 3);
+aveFPR = nanmean(fprLog, 2);
 figure(4)
-clims = [0, 1];
-imagesc(flipud(aveFPR), clims)
-colorbar
+plot(networkSizes, aveFPR)
 title('Average FPR over Simulations')
-xlabel('Connection Strength')
-ylabel('Connection Probability')
-set(gca,'YDir','normal')
+xlabel('Network Size')
+ylabel('FPR')
+xlim([networkSizes(1) networkSizes(end)]) 
+ylim([0 1])

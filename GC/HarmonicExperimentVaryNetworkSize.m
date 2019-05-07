@@ -36,7 +36,7 @@ prob = 0.5;
 strength = 1;
 
 % Number of matrices to average results over.
-numMats = 3;
+numMats = 100;
 
 % Number of simulation trials per repetition.
 numTrials = 10;
@@ -93,7 +93,7 @@ diagnosticsLog = nan(numSizes * numMats, 3);
 
 % Number of parallel processes
 M = 12;
-c=progress(numSizes * numMats);
+c = progress(numSizes * numMats);
 parfor (idx = 1 : numSizes * numMats, M)
     [j, l] = ind2sub([numSizes, numMats], idx);
     fprintf('size: %d, mat: %d\n', j, l)
@@ -183,6 +183,7 @@ plot(networkSizes, numRerun)
 title('Number of Simulations Rerun by Our Analysis')
 xlabel('Network Size')
 ylabel('Number of Times Experiment Rerun')
+xlim([networkSizes(1) networkSizes(end)])
 
 % Show average accuracies for each number of perturbations and
 % observations.
@@ -192,6 +193,8 @@ plot(networkSizes, aveAccuracies)
 title('Average Accuracy over Simulations')
 xlabel('Network Size')
 ylabel('Accuracy')
+xlim([networkSizes(1) networkSizes(end)]) 
+ylim([0 1])
 
 % Show average TPR for each number of perturbations and
 % observations.
@@ -201,6 +204,8 @@ plot(networkSizes, aveTPR)
 title('Average TPR over Simulations')
 xlabel('Network Size')
 ylabel('TPR')
+xlim([networkSizes(1) networkSizes(end)]) 
+ylim([0 1])
 
 % Show average FPR for each number of perturbations and
 % observations.
@@ -210,3 +215,5 @@ plot(networkSizes, aveFPR)
 title('Average FPR over Simulations')
 xlabel('Network Size')
 ylabel('FPR')
+xlim([networkSizes(1) networkSizes(end)]) 
+ylim([0 1])

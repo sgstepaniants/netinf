@@ -20,7 +20,7 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
           #legend(x = "topleft", legend = paste(i, "xmap", j),
           #       col = c("red"), lwd = 1, bty = "n", inset = 0.02, cex = 0.8)
         }
-        print(paste(j, "causes", i))
+        #print(paste(j, "causes", i))
       }
     }
   }
@@ -31,30 +31,30 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
 
 # TODO: Make get_adj returns two adjacency matrices, one containing complexity estimates
 # and the other containing directionality estimates.
-get_adj <- function(ccm_rho_graphs) {
-  # ccm_rho_graphs is a 4 dimensional array where the first and second
-  # dimensions represent the nodes in the system, the third
-  # dimension is the number of library sizes tried, and the fourth
-  # dimension is the number of simulation trials ran.
-  n <- dim(ccm_rho_graphs)[1]
-  num_trials <- dim(ccm_rho_graphs)[4]
-  
-  adj_opt_rho <- array(0, dim = c(n, n, num_trials))
-  max_rho <- apply(ccm_rho_graphs, c(1, 2, 4), max)
-  
-  # Search through rho values and find the one that represents 95%
-  # of the correlation maximum for each graph.
-  for (i in 1 : n) {
-    for (j in 1 : n) {
-      for (t in 1 : num_trials) {
-        idx <- which(ccm_rho_graphs[i, j,, t] >= 0.95 * max_rho[i, j, t])[1]
-        adj_opt_rho[i, j, t] <- ccm_rho_graphs[i, j, idx, t]
-      }
-    }
-  }
-  
-  return(adj_opt_rho)
-}
+#get_adj <- function(ccm_rho_graphs) {
+#  # ccm_rho_graphs is a 4 dimensional array where the first and second
+#  # dimensions represent the nodes in the system, the third
+#  # dimension is the number of library sizes tried, and the fourth
+#  # dimension is the number of simulation trials ran.
+#  n <- dim(ccm_rho_graphs)[1]
+#  num_trials <- dim(ccm_rho_graphs)[4]
+#  
+#  adj_opt_rho <- array(0, dim = c(n, n, num_trials))
+#  max_rho <- apply(ccm_rho_graphs, c(1, 2, 4), max)
+#  
+#  # Search through rho values and find the one that represents 95%
+#  # of the correlation maximum for each graph.
+#  for (i in 1 : n) {
+#    for (j in 1 : n) {
+#      for (t in 1 : num_trials) {
+#        idx <- which(ccm_rho_graphs[i, j,, t] >= 0.95 * max_rho[i, j, t])[1]
+#        adj_opt_rho[i, j, t] <- ccm_rho_graphs[i, j, idx, t]
+#      }
+#    }
+#  }
+#  
+#  return(adj_opt_rho)
+#}
 
 
 # get_ccm_rho_hankel <- function(data_func, E, rank,

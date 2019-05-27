@@ -1,24 +1,11 @@
-function [est, tableResults] = GrangerBaseExperiment(data, mats, preprocfn, freq, resultPath, dataObsIdx, rhoThresh)
-    saveData = true;
-    if nargin < 5 || strcmp(resultPath, '')
-        saveData = false;
-    end
-    
-    % The numTrials variable controls how many trials from the data you
-    % actually want to analyze. With too many trials, the analysis may
-    % become prohibitively slow.
-    
-    % Make directory to hold results files if one does not already exist
-    if saveData && exist(resultPath, 'dir') ~= 7
-        error('Result path not found: %s', resultPath)
-    end
-    
+function [est, tableResults] = GrangerBaseExperiment(data, mats, preprocfn, dataObsIdx, rhoThresh)
+
     nvars = size(mats, 1); % number of variables / oscillators
     numMats = size(mats,3); % number of matrices we try
-    if nargin < 6
+    if nargin < 4
         dataObsIdx = true([numMats, nvars]);
     end
-    if nargin < 7
+    if nargin < 5
         rhoThresh = 1;
     end
 
@@ -58,7 +45,6 @@ function [est, tableResults] = GrangerBaseExperiment(data, mats, preprocfn, freq
             continue
         end
 
-        % Save results
         if ~isnan(est(obsIdx, obsIdx, j))
             tableResultsDiagnostics(j, :) = diagnostics;
             tableResultsTPR(j) = nnz((est(:, :, j) + truth == 2) .* ~eye(nvars)) / numPositives;
@@ -66,17 +52,9 @@ function [est, tableResults] = GrangerBaseExperiment(data, mats, preprocfn, freq
             tableResultsAcc(j) = nnz((est(:, :, j) == truth) .* ~eye(nvars)) / (numObs^2-numObs);
         end
 
-        if saveData && mod(count, freq) == 0
-            % save necessary files
-        end
-
         count = count + 1;
     end
     
     tableResults = struct('tpr', tableResultsTPR, 'fpr', tableResultsFPR, ...
         'acc', tableResultsAcc, 'diagnostics', tableResultsDiagnostics);
-
-    % TODO: Save whole workspace (including all those tables of results)
-    if saveData
-    end
 end

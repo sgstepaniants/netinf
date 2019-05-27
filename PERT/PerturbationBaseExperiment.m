@@ -1,36 +1,32 @@
-function [est, tableResults] = PerturbationBaseExperiment(data, ...
-    mats, numTrials, preprocfn, dataObsIdx, dataPertIdx, dataPertTimes, ...
-    dataPertLength, method, corrThresh, pad, movvarWidth, freq, resultPath)
-    saveData = true;
-    if nargin < 14
-        saveData = false;
-    end
-    
-    % Make directory to hold results files if one does not already exist
-    if saveData && exist(resultPath, 'dir') ~= 7
-        error('Result path not found: %s', resultPath)
+function [predMats, predMatsHist, AprobHist, truePertOrders, predPertOrders, tableResults] ...
+    = PerturbationBaseExperiment(data, mats, numTrials, preprocfn, dataObsIdx, ...
+    dataPertIdx, dataPertTimes, leftPad, rightPad, method, thresh, movvarWidth)
+
+    if nargin < 12
+        movvarWidth = 0;
     end
     
     nvars = size(mats, 1); % number of variables / oscillators
-    numMats = size(mats,3); % number of matrices we try
+    numMats = size(mats, 3); % number of matrices we try
+    numPerts = size(dataPertIdx, 2); % number of perturbations
 
     % Tables to hold results
-    tableResultsTPR = nan(numTrials, numMats);
-    tableResultsFPR = nan(numTrials, numMats);
-    tableResultsAcc = nan(numTrials, numMats);
+    tableResultsTPR = nan(1, numMats);
+    tableResultsFPR = nan(1, numMats);
+    tableResultsAcc = nan(1, numMats);
     
-    % est holds GC's estimate of the networks
-    est = nan(nvars, nvars, numTrials, numMats);
-
-    count = 1; % number of times we have run network inference method (so know how often to save work)
-
+    % est holds predicted networks
+    AprobHist = nan(nvars, nvars, numPerts, numMats, numTrials);
+    predMats = nan(nvars, nvars, numMats);
+    truePertOrders = nan(numPerts, nvars, numMats, numTrials);
+    predPertOrders = nan(numPerts, nvars, numMats, numTrials);
+    
     % Loop over the networks
     for j = 1 : numMats
         obsIdx = dataObsIdx(j, :);
         numObs = nnz(obsIdx);
         pertIdx = dataPertIdx(j, :);
         pertTimes = dataPertTimes(j, :);
-        pertLength = dataPertLength(j);
         
         truth = mats(:, :, j);
         numPositives = nnz(truth(obsIdx, obsIdx) .* ~eye(numObs));
@@ -44,43 +40,41 @@ function [est, tableResults] = PerturbationBaseExperiment(data, ...
             else
                 X = preprocfn(data(obsIdx, :, trial, j));
             end
+            
+            % Get the true perturbation orders.
+            truePertOrders(:, :, j, trial) = TruePertOrders(truth, pertIdx, obsIdx);
 
             % Run network inference on this data
             try
-                [AprobHist, predPertOrders] = CreateProbabilityMatrix(X, ...
+                [Aprob, predPertOrders(:, :, j, trial)] = CreateProbabilityMatrix(X, ...
                                                                 pertIdx, obsIdx, pertTimes, ...
-                                                                pertLength, method, corrThresh, pad, movvarWidth);
+                                                                leftPad, rightPad, method, ...
+                                                                thresh, movvarWidth);
+                
+                AprobHist(:, :, :, j, trial) = Aprob;
             catch e
                 fprintf('%s\n', e.identifier)
                 fprintf('%s\n', e.message)
                 continue
             end
-            
-            % Get the true perturbation orders.
-            truePertOrders = TruePertOrders(truth, pertIdx, obsIdx);
-
-            % Get the network reconstruction our algorithm produces.
-            AprobFinal = AprobHist(:, :, end);
-            predMat = double(AprobFinal > 0.5);
-            predMat(isnan(AprobFinal)) = NaN;
-            est(:, :, trial, j) = predMat;
-
-            % Save results
-            tableResultsTPR(trial, j) = nnz((predMat + truth == 2) .* ~eye(nvars)) / numPositives;
-            tableResultsFPR(trial, j) = nnz((predMat - truth == 1) .* ~eye(nvars)) / numNegatives;
-            tableResultsAcc(trial, j) = nnz((predMat == truth) .* ~eye(nvars)) / (numObs^2-numObs);
-
-            if saveData && mod(count, freq) == 0
-                % save necessary files
-            end
-            
-            count = count + 1;
         end
+        
+        % Average connectivity probabilites to get predicted adjacency matrix
+        AprobFinal = mean(squeeze(AprobHist(:, :, end, j, :)), 3);
+        predMat = double(AprobFinal > 0.5);
+        predMat(isnan(AprobFinal)) = NaN;
+        predMats(:, :, j) = predMat;
+        
+        % Save results
+        tableResultsTPR(j) = nnz((predMat + truth == 2) .* ~eye(nvars)) / numPositives;
+        tableResultsFPR(j) = nnz((predMat - truth == 1) .* ~eye(nvars)) / numNegatives;
+        tableResultsAcc(j) = nnz((predMat == truth) .* ~eye(nvars)) / (numObs^2-numObs);
     end
     
+    % Get the network reconstruction our algorithm produces.
+    AprobAveHist = mean(AprobHist, 5);
+    predMatsHist = double(AprobAveHist > 0.5);
+    predMatsHist(isnan(AprobAveHist)) = NaN;
+    
     tableResults = struct('tpr', tableResultsTPR, 'fpr', tableResultsFPR, 'acc', tableResultsAcc);
-
-    % TODO: Save whole workspace (including all those tables of results)
-    if saveData
-    end
 end

@@ -1,4 +1,4 @@
-function Y = GenerateKuramotoData(A, tSpan, N, K, randpfn, randwfn, forcingFunc)
+function Y = GenerateKuramotoData(A, tSpan, N, K, pfn, wfn, forcingFunc)
 %
 % calls kuramoto.m to return solution of Kuramoto model
 %
@@ -22,19 +22,9 @@ function Y = GenerateKuramotoData(A, tSpan, N, K, randpfn, randwfn, forcingFunc)
 %       of (possibly random) initial conditions p, one for each node in the 
 %       network
 %
-% randvfn 
-%       a function that takes a scalar n and returns an [n x 1] vector 
-%       of (possibly random) initial velocities v, one for each node in the 
-%       network 
-%
 % randwfn 
 %       a function that takes a scalar n and retuns an [n x 1] vector 
 %       of (possibly random) natural frequencies w, one for each node
-%       in the network
-%
-% randcfn 
-%       a function that takes a scalar n and retuns an [n x 1] vector 
-%       of (possibly random) damping coefficients c, one for each node
 %       in the network
 %
 % OUTPUTS:
@@ -48,8 +38,8 @@ function Y = GenerateKuramotoData(A, tSpan, N, K, randpfn, randwfn, forcingFunc)
     Y = zeros(n,m,N);
     
     for j = 1:N
-        startpos = randpfn(n);
-        freq = randwfn(n);
+        startpos = pfn(n);
+        freq = wfn(n);
         
         y = kuramoto(startpos, A, freq, tSpan, K, forcingFunc);
         Y(:,:,j) = y;

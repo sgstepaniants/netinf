@@ -2,14 +2,12 @@
 % neighbors by springs with certain initial conditions and boundary conditions.
 
 clear all; close all; clc;
-addpath('../SimulateData/')
-addpath('../SimulateData/InitFunctions/')
-addpath('./best_kmeans/')
-addpath('./kmeans_opt/')
+addpath('../DataScripts/SimulateData/')
+addpath('../DataScripts/SimulateData/InitFunctions/')
 
 warning('off', 'stats:kmeans:EmptyCluster')
 
-nvars = 20;
+nvars = 3;
 bc = 'fixed';
 
 endtime = 200;
@@ -19,19 +17,21 @@ tSpan = linspace(0, endtime, nobs);
 
 noisefn  = @(data) WhiteGaussianNoise(data, 0.1);
 
-mfn = @(n) constmfn(n, 1);
-pfn = @(n) randpfn(n);
-vfn = @(n) zeros([n, 1]);
+pfn = @(n) randfn(n, -0.5, 0.5);
+vfn = @(n) randfn(n, -1, 1);
+mfn = @(n) constfn(n, 1);
+
+% Specify the damping constant.
+damping = 0.2;
+cfn = @(n) constfn(n, damping);
 
 % Create connectivity matrix.
 prob = 0.5;
-spring = 1;
-mat = MakeNetworkSymmER(nvars, prob, true);
+spring = 0.1;
+mat = MakeNetworkER(nvars, prob, true);
 K = MakeNetworkTriDiag(nvars + 2, false);
 K(2:nvars+1, 2:nvars+1) = mat;
 K = spring * K;
-
-damping = 0.3;
 
 
 % Print if this adjacency matrix will give bad simulations.
@@ -49,12 +49,12 @@ determinant = det(A)
 
 % Create forcing function.
 forcingFunc = zeros([nvars, length(tSpan)]);
-pertIdx = 2;
+pertIdx = 1;
 numPerts = length(pertIdx);
 times = round(linspace(0, length(tSpan), numPerts+2));
 pertTimes = times(2:end-1);
-pertLength = 200;
-pertForce = 30;
+pertLength = 100;
+pertForce = 10;
 for k=1:numPerts
     forcingFunc(pertIdx(k), pertTimes(k):pertTimes(k)+pertLength) = pertForce;
 end
@@ -65,8 +65,7 @@ maxWaitTime = log(eps / max(sqrt(sum(((pertForce * inv(A)).^2))))) / max(amplitu
 
 % Simulate harmonic oscillator movement.
 ntrials = 1;
-Y = GenerateNNCoupledData(nvars, tSpan, ntrials, K, pfn, vfn, ...
-        mfn, @(n)constcfn(n, damping), bc, forcingFunc);
+Y = GenerateHarmonicData(nvars, tSpan, 1, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
 
 % Plot oscillator trajectories.
 figure(1)
@@ -75,7 +74,7 @@ legend(strcat('n', num2str((1:nvars).')))
 
 
 % Plot windowed variance of oscillator displacements.
-Y_movvar = movvar(Y, [10, 0], 0, 2);
+% Y_movvar = movvar(Y, [10, 0], 0, 2);
 % 
 % figure(2)
 % plot(Y_movvar.')
@@ -116,19 +115,26 @@ Y_movvar = movvar(Y, [10, 0], 0, 2);
 % plot(entropy.')
 % legend(strcat('n', num2str((1:nvars).')))
 
-
-% Compute distance from perturbed nodes using changepoints.
-pad = 100;
+leftPad = 500;
+rightPad = pertLength;
 obsIdx = true([1, nvars]);
 %changepointThresh = 10;
 %[pertOrders, pertResponseTimes] = ChngptPertOrders(Y, pertIdx, obsIdx, pertTimes, pad, changepointThresh)
 
 % Compute distance from perturbed nodes using correlation coefficients.
-corrThresh = 0.5;
-observedY = Y;
-%predPertValues = CorrPertValues(observedY, pertIdx, pertTimes, pertLength, pad, corrThresh)
-[pertOrders, pertValues] = GetPertOrders(observedY, nvars, pertIdx, obsIdx, pertTimes, pertLength, 'corr', corrThresh, pad)
+corrThresh = 0.2;
+observedY = noisefn(Y);
+[pertOrders, pertValues] = GetPertOrders(observedY, pertIdx, obsIdx, pertTimes, leftPad, rightPad, 'corr', corrThresh)
 
 % Compute the true distance in the network.
 obsIdx = true([1, nvars]);
 truePertOrders = TruePertOrders(mat, pertIdx, obsIdx)
+
+
+%corrs = nan([nvars, 1000]);
+%for t = 1 : 1000
+%    corrMat = corr(observedY(:, (pertTimes - 500) : pertTimes + t).');
+%    corrs(:, t) = corrMat(pertIdx, :);
+%end
+%figure(2);
+%plot(corrs.');

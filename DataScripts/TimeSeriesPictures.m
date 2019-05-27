@@ -78,4 +78,35 @@ wfn = @(n) randfn(n, -1, 1);
 data = GenerateKuramotoData(A, tSpan, 1, K, pfn, wfn, forcingFunc);
 figure(4)
 plot(noisefn(normalize(data)).' + repmat([2; 1; 0; -1; -2], [1, length(tSpan)]).', 'LineWidth', 3);
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+set(gca,'TickLength',[0 0])
 
+% Plot confusion matrices
+GCHar = [[100, 0, 0, 0]; [2, 98, 0, 0]; [0, 0, 99, 1]; [0, 0, 0, 100]];
+figure(5)
+imagesc(GCHar)
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+colormap pink
+
+GCKur = [[71, 10, 12, 7]; [2, 3, 0, 95]; [1, 0, 2, 97]; [1, 2, 0, 97]];
+figure(6)
+imagesc(GCKur)
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+colormap pink
+
+CCMHar = [[1, 3, 2, 94]; [99, 1, 0, 0]; [93, 0, 6, 1]; [46, 1, 1, 52]];
+figure(7)
+imagesc(CCMHar)
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+colormap pink
+
+CCMKur = [[90, 2, 8, 0]; [7, 3, 0, 90]; [3, 2, 2, 93]; [1, 1, 2, 96]];
+figure(8)
+imagesc(CCMKur)
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+colormap pink

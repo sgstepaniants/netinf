@@ -49,9 +49,7 @@ CCMBaseExperiment <- function(data, mats, E, num_libs, num_trials=dim(data)[3], 
     lib_sizes <- delta * 1:num_libs
 
     # Run network inference on this data
-    ptm <- proc.time()
     graphs <- get_ccm_rho(preproc_data, E, lib_sizes, num_trials, num_samples)
-    print(proc.time() - ptm)
 
     ccm_rho_graphs[,,,, i] <- graphs
 

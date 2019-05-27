@@ -22,10 +22,9 @@ damping = 0;
 
 pfn = @(n) 2*pi*rand([n, 1]); % uniform [0, 2pi]
 wfn = @(n) 2*rand([n, 1]) - 1; % uniform [-1, 1]
-cfn = @(n) constfn(n, damping);
 
 % forcing function
-pertForce = 50;
+pertForce = 30;
 pertIdx = 1;
 numPerts = length(pertIdx);
 times = round(linspace(0, nobs, numPerts+2));
@@ -36,7 +35,7 @@ for k=1:numPerts
     forcingFunc(pertIdx(k), pertTimes(k):pertTimes(k)+pertLength) = pertForce;
 end
 
-Y = GenerateKuramotoData(mat, tSpan, 1, K, pfn, wfn, cfn, forcingFunc);
+Y = GenerateKuramotoData(mat, tSpan, 1, K, pfn, wfn, forcingFunc);
 
 figure(1)
 plot(Y.')

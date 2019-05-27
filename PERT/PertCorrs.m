@@ -1,13 +1,13 @@
-function pertValues = PertCorrs(data, pertIdx, pertTimes, pertLength, pad, corrThresh)
-    n = size(data, 1);
+function pertValues = PertCorrs(data, pertIdx, pertTimes, leftPad, rightPad, corrThresh)
+    [nvars, timeLength] = size(data);
     numPerts = length(pertTimes);
     
-    pertValues = zeros(numPerts, n);
+    pertValues = zeros(numPerts, nvars);
     for k=1:numPerts
         pertInd = pertIdx(k);
         
-        leftBound = max(pertTimes(k) - pad, 1);
-        rightBound = pertTimes(k) + pertLength; %round(pertLength / 2);
+        leftBound = max(pertTimes(k) - leftPad, 1);
+        rightBound = min(pertTimes(k) + rightPad, timeLength);
         pertWindow = leftBound:rightBound;
         windowData = data(:, pertWindow);
         

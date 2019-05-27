@@ -8,7 +8,7 @@ source('CCMBaseExperiment.R')
 source('AnalysisFunctions/moving_average.R')
 
 exp_name <- "VaryStrengthsProbs_Size5"
-exp_path <- sprintf("../KuramotoExperiments/EXP%s", exp_name)
+exp_path <- sprintf("../HarmonicExperiments/EXP%s", exp_name)
 
 print(exp_path)
 
@@ -45,7 +45,7 @@ num_samples <- 100
 preprocfn <- identity
 
 # Save experiment parameters
-exp_params <- list("E"=E, "num_libs"=num_libs, "num_samples"=num_samples, "preprocfn"=preprocfn, "window_size"=window_size)
+exp_params <- list("E"=E, "num_libs"=num_libs, "num_samples"=num_samples, "preprocfn"=preprocfn)
 saveRDS(exp_params, sprintf("%s/exp_params.rds", result_path))
 
 nvars <- params$nvars
@@ -92,12 +92,23 @@ for (ind in 1:(num_probs*num_strengths*num_mats)) {
   acc_log[i, j, m] <- table_results$acc
 }
 
+
 # Save experiment result files.
 saveRDS(pred_mats, sprintf("%s/pred_mats.rds", result_path))
-saveRDS(graph_log, sprintf("%s/graph_log.rds", result_path))
+writeMat(sprintf("%s/predMats.m", result_path), A = pred_mats)
+
 saveRDS(tpr_log, sprintf("%s/tpr_log.rds", result_path))
+writeMat(sprintf("%s/tprLog.m", result_path), A = tpr_log)
+
 saveRDS(fpr_log, sprintf("%s/fpr_log.rds", result_path))
+writeMat(sprintf("%s/fprLog.m", result_path), A = fpr_log)
+
 saveRDS(acc_log, sprintf("%s/acc_log.rds", result_path))
+writeMat(sprintf("%s/accLog.m", result_path), A = acc_log)
+
+saveRDS(graph_log, sprintf("%s/graph_log.rds", result_path))
+writeMat(sprintf("%s/graphLog.m", result_path), A = graph_log)
+
 
 # Plot accuracy, TPR, and FPR for all connections probability and spring constant combinations
 rgb.palette <- colorRampPalette(c("blue", "red"), space = "rgb")
@@ -107,6 +118,7 @@ myPanel <- function(x, y, z, ...) {
 }
 
 ave_acc <- apply(acc_log, c(1, 2), function(x) {mean(x, na.rm=TRUE)})
+writeMat(sprintf("%s/aveAcc.m", result_path), A = ave_acc)
 levelplot(t(ave_acc), main="Average Accuracy over Simulations",
           xlab="Connection Strength", ylab="Connection Probability",
           col.regions=rgb.palette(120),
@@ -114,6 +126,7 @@ levelplot(t(ave_acc), main="Average Accuracy over Simulations",
           panel=myPanel)
 
 ave_tpr <- apply(tpr_log, c(1, 2), function(x) {mean(x, na.rm=TRUE)})
+writeMat(sprintf("%s/aveTPR.m", result_path), A = ave_tpr)
 levelplot(t(ave_tpr), main="Average TPR over Simulations",
           xlab="Connection Strength", ylab="Connection Probability",
           col.regions=rgb.palette(120),
@@ -121,6 +134,7 @@ levelplot(t(ave_tpr), main="Average TPR over Simulations",
           panel=myPanel)
 
 ave_fpr <- apply(fpr_log, c(1, 2), function(x) {mean(x, na.rm=TRUE)})
+writeMat(sprintf("%s/aveFPR.m", result_path), A = ave_fpr)
 levelplot(t(ave_fpr), main="Average FPR over Simulations",
           xlab="Connection Strength", ylab="Connection Probability",
           col.regions=rgb.palette(120),

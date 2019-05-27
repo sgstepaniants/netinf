@@ -1,11 +1,11 @@
 function [AprobHist, pertOrders] = CreateProbabilityMatrix(observedData, pertIdx, obsIdx, pertTimes, ...
-                                                        pertLength, method, thresh, pad, movvarWidth)
+                                                        leftPad, rightPad, method, thresh, movvarWidth)
     % Check that all the necessary input arguments are specified.
-    if nargin < 8
+    if nargin < 7
         error('Not enough input arguments.')
     end
     
-    if nargin < 10
+    if nargin < 8
         movvarWidth = 0;
     end
     
@@ -17,7 +17,7 @@ function [AprobHist, pertOrders] = CreateProbabilityMatrix(observedData, pertIdx
     
     % Find causal connections from perturbation data.
     % pertOrders will have dimension (numObs x nvars).
-    pertOrders = GetPertOrders(observedData, pertIdx, obsIdx, pertTimes, pertLength, method, thresh, pad, movvarWidth);
+    pertOrders = GetPertOrders(observedData, pertIdx, obsIdx, pertTimes, leftPad, rightPad, method, thresh, movvarWidth);
     
     % Initialize the probability matrix we will construct.
     Aprob = nan(nvars, nvars);

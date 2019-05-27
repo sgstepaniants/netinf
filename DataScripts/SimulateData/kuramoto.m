@@ -33,7 +33,7 @@ function Y = kuramoto(p, adj, w, tSpan, K, forcingFunc)
     param{3} = w; % natural frequencies
     param{4} = K; % connection strength
     
-    if nargin < 7
+    if nargin < 6
         forcingFunc = zeros(n, length(tSpan));
     end
     param{5} = @(t) forcingFunc(:, findClosestTime(t, tSpan));

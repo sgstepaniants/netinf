@@ -27,17 +27,14 @@ load(sprintf('%s/dataLog.mat', expPath))
 load(sprintf('%s/trueMats.mat', expPath))
 
 % Run Granger Causality to infer network connections.
-reps = 1;
-freq = 1;
 preprocfn = @(data) cos(data);
-save(sprintf('%s/expParams.mat', resultPath), 'reps', 'freq', 'preprocfn')
+save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
 
-[predMats, est, tableResults] = GrangerBaseExperiment(dataLog, trueMats, numTrials, reps, preprocfn, freq);
+[predMats, tableResults] = GrangerBaseExperiment(dataLog, trueMats, preprocfn);
 
 % Create a confusion matrix for network predictions.
 confusionMat = ConfusionMatrix(trueMats, predMats)
 
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/est.mat', resultPath), 'est');
 save(sprintf('%s/tableResults.mat', resultPath), 'tableResults');
 save(sprintf('%s/confusionMat.mat', resultPath), 'confusionMat');

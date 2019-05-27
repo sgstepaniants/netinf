@@ -2,10 +2,9 @@
 % neighbors by springs with certain initial conditions and boundary conditions.
 
 clear all; close all; clc;
-addpath('../SimulateData/')
-addpath('../SimulateData/InitFunctions/')
-addpath('./best_kmeans/')
-addpath('./kmeans_opt/')
+addpath('../DataScripts/SimulateData/')
+addpath('../DataScripts/SimulateData/InitFunctions/')
+addpath('../kmeans_opt/')
 
 warning('off', 'stats:kmeans:MissingDataRemoved')
 
@@ -19,8 +18,13 @@ tSpan = linspace(0, endtime, nobs);
 
 noisefn  = @(data) WhiteGaussianNoise(data, 0.1);
 
-pfn = @(n) randpfn(n);
-vfn = @(n) zeros([n, 1]);
+pfn = @(n) randfn(n, -0.5, 0.5);
+vfn = @(n) randfn(n, -1, 1);
+mfn = @(n) constfn(n, 1);
+
+% Specify the damping constant.
+damping = 0.2;
+cfn = @(n) constfn(n, damping);
 
 
 prob = 0.5;
@@ -86,14 +90,13 @@ while trial <= numTrials
 
     % Simulate harmonic oscillator movement.
     ntrials = 1;
-    data = GenerateNNCoupledData(nvars, tSpan, ntrials, K, pfn, @(n)vfn(n), ...
-            @(n)constmfn(n, 1), @(n)constcfn(n, damping), bc, forcingFunc);
+    data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
 
     % Compute perturbation order and compare to true perturbation order.
     pad = 100;
     obsIdx = true([1, nvars]);
     observedData = data(obsIdx, :);
-    predPertOrders = GetPertOrders(observedData, nvars, pertIdx, obsIdx, pertTimes, pertLength, 'corr', corrThresh, pad);
+    predPertOrders = GetPertOrders(observedData, nvars, pertIdx, obsIdx, pertTimes, 'corr', corrThresh, pad);
     truePertOrders = TruePertOrders(mat, pertIdx, obsIdx);
     
     predPertOrdersLog(trial, :) = predPertOrders;

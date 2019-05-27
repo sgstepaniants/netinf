@@ -1,5 +1,7 @@
 function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx, pertTimes, ...
-                                        pertLength, method, thresh, pad, movvarWidth)
+                                            leftPad, rightPad, method, thresh, movvarWidth)
+    addpath('../kmeans_opt/')
+    
     % Give default values for all optional arguments.
     if strcmp(method, 'corr')
         % For the correlation method, every node that is perturbed must be
@@ -8,23 +10,23 @@ function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx,
             error('For correlation method, perturbed nodes must be observed.')
         end
         
-        if nargin < 8
+        if nargin < 6
             thresh = 0.5;
-        elseif nargin < 8
+        elseif nargin < 7
             pad = 100;
         end
     elseif strcmp(method, 'meanvar')
-        if nargin < 8
+        if nargin < 6
             thresh = 0;
-        elseif nargin < 9
+        elseif nargin < 7
             pad = 0;
-        elseif nargin < 10
+        elseif nargin < 8
             movvarWidth = 2;
         end
     elseif strcmp(method, 'chngpt')
-        if nargin < 8
+        if nargin < 6
             thresh = 10;
-        elseif nargin < 9
+        elseif nargin < 7
             pad = 100;
         end
     else
@@ -39,9 +41,9 @@ function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx,
     if strcmp(method, 'corr')
         cumObs = cumsum(obsIdx);
         alignedPertIdx = cumObs(pertIdx);
-        pertValues(:, obsIdx) = PertCorrs(observedData, alignedPertIdx, pertTimes, pertLength, pad, thresh);
+        pertValues(:, obsIdx) = PertCorrs(observedData, alignedPertIdx, pertTimes, leftPad, rightPad, thresh);
     elseif strcmp(method, 'meanvar')
-        pertValues(:, obsIdx) = PertMeanVariances(observedData, pertTimes, pertLength, movvarWidth, pad, thresh);
+        pertValues(:, obsIdx) = PertMeanVariances(observedData, pertTimes, movvarWidth, pad, thresh);
     elseif strcmp(method, 'chngpt')
         pertValues(:, obsIdx) = PertChangepoints(observedData, pertTimes, pad, thresh);
     end
@@ -62,11 +64,18 @@ function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx,
         clusterValues = values(clusterIdx);
         
         % Cluster the values of all nodes in this trial.
-        if length(clusterValues) > 1
-            [idx, C] = kmeans_opt(clusterValues.');
+        if isempty(clusterValues)
+            idx = [];
+            C = [];
         else
-            idx = 1 : length(clusterValues);
-            C = clusterValues;
+            if length(unique(clusterValues)) == 1 || ...
+                (length(clusterValues) == 2 && abs(clusterValues(1) - clusterValues(2)) < 0.1)
+                % Edge case when clustering a list of identical numbers
+                idx = ones(length(clusterValues), 1);
+                C = clusterValues(1);
+            else
+                [idx, C] = kmeans_opt(clusterValues.');
+            end
         end
 
         [~, sortedIdx] = sort(C);

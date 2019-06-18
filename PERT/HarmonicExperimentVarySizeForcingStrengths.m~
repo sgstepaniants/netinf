@@ -3,14 +3,14 @@ run '../mvgc_v1.0/startup.m'
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
-expNum = 'PertVaryStrengthsNetworkSize';
+expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 2 : 20;
+networkSizes = 4;
 numSizes = length(networkSizes);
 
 % Connection strengths
-strengths = 0.1 : 0.1 : 1;
+strengths = 0.1 : 0.3 : 1;
 numStrengths = length(strengths);
 
 % Forcing magnitudes
@@ -28,13 +28,16 @@ cfn = @(n) constfn(n, damping);
 
 % Specify noise and prepocessing for data.
 measParam = 0.1;
-noisefn  = @(data) WhiteGaussianNoise(data, measParam);
+noisefn = @(data) WhiteGaussianNoise(data, measParam);
 
 % Delta t
 deltat = 0.1;
 
 % Specify boundary conditions.
 bc = 'fixed';
+
+% Preprocessing function for data.
+preprocfn = @(data) data;
 
 % Probabilities of network connections.
 prob = 0.5;
@@ -80,33 +83,32 @@ end
 %% Generate Data and Run Granger Causality Experiments
 
 % Create random connectivity matrices and simulate oscillator trajectories.
-dataLog = cell(1, numSizes * numStrengths * numMats);
-trueMats = cell(1, numSizes * numStrengths * numMats);
-Ks = cell(1, numSizes * numStrengths * numForces * numMats);
+dataLog = cell(1, numSizes * numForces * numStrengths * numMats);
+dataPertLength = cell(1, numSizes * numForces * numStrengths * numMats);
+dataPertTimes = cell(1, numSizes * numForces * numStrengths * numMats);
+trueMats = cell(1, numSizes * numForces * numStrengths * numMats);
+trueKs = cell(1, numSizes * numForces * numStrengths * numMats);
 
 % Run PCI to infer network connections.
-preprocfn = @(data) data - repmat(uniffn(size(data, 1), -0.5, 0.5, bc), [1, size(data, 2)]);
-save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
-
-numRerun = zeros(1, numSizes * numStrengths * numForces * numMats);
-predMats = cell(1, numSizes * numStrengths * numForces * numMats);
-tprLog = nan(1, numSizes * numStrengths * numForces * numMats);
-fprLog = nan(1, numSizes * numStrengths * numForces * numMats);
-accuracyLog = nan(1, numSizes * numStrengths * numForces * numMats);
+predMats = cell(1, numSizes * numForces * numStrengths * numMats);
+tprLog = nan(1, numSizes * numForces * numStrengths * numMats);
+fprLog = nan(1, numSizes * numForces * numStrengths * numMats);
+accLog = nan(1, numSizes * numForces * numStrengths * numMats);
+numRerun = zeros(1, numSizes * numForces * numStrengths * numMats);
 
 % Number of parallel processes
 M = 25;
-c = progress(numSizes * numStrengths * numForces * numMats);
-parfor (idx = 1 : numSizes * numStrengths * numForces * numMats, M)
-    [j, k, l, m] = ind2sub([numSizes, numStrengths, numForces, numMats], idx);
-    fprintf('size: %d, strength: %d, mat: %d\n', j, k, l)
-
+c = progress(numSizes * numForces * numStrengths * numMats);
+for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
+    [j, k, l, m] = ind2sub([numSizes, numForces, numStrengths, numMats], idx);
+    fprintf('size: %d, force: %d, strength: %d, mat: %d\n', j, k, l, m)
+    
     % Count the number of iterations done by the parfor loop
     c.count();
 
     nvars = networkSizes(j);
-    strength = strengths(k);
-    force = forces(l);
+    force = forces(k);
+    strength = strengths(l);
 
     while true
         % Create adjacency matrices.
@@ -125,7 +127,7 @@ parfor (idx = 1 : numSizes * numStrengths * numForces * numMats, M)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
-
+        
         endtime = waitTime * (numPerts + 1);
         nobs = round(endtime / deltat);
         tSpan = linspace(0, endtime, nobs);
@@ -143,56 +145,79 @@ parfor (idx = 1 : numSizes * numStrengths * numForces * numMats, M)
         % Generate data with forced perturbations.
         data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
         noisyData = noisefn(data);
-
-        obsIdx = true([1, nvars]); % default parameter
+        
+        obsIdx = true([1, nvars]);
         leftPad = 100;
         rightPad = pertLength;
-        [est, predMatsHist, AprobHist, truePertOrders, predPertOrders, tableResults] = ...
+        [est, ~, ~, ~, ~, tableResults] = ...
             PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
                 obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
 
         dataLog{idx} = noisyData;
+        dataPertLength{idx} = pertLength;
+        dataPertTimes{idx} = pertTimes;
         trueMats{idx} = mat;
-        Ks{idx} = K;
+        trueKs{idx} = K;
+        
         predMats{idx} = est;
-
         tprLog(idx) = tableResults.tpr;
         fprLog(idx) = tableResults.fpr;
-        accuracyLog(idx) = tableResults.acc;
+        accLog(idx) = tableResults.acc;
         break
     end
 end
 
 % Reshape data structures
-dataLog = reshape(dataLog, numSizes, numStrengths, numForces, numMats);
-numRerun = sum(reshape(numRerun, [numSizes, numStrengths, numForces, numMats]), 4);
-trueMats = reshape(trueMats, numSizes, numStrengths, numForces, numMats);
-Ks = reshape(Ks, numSizes, numStrengths, numForces, numMats);
-predMats = reshape(predMats, numSizes, numStrengths, numForces, numMats);
-tprLog = reshape(tprLog, [numSizes, numStrengths, numForces, numMats]);
-fprLog = reshape(fprLog, [numSizes, numStrengths, numForces, numMats]);
-accuracyLog = reshape(accuracyLog, [numSizes, numStrengths, numForces, numMats]);
+dataLog = reshape(dataLog, numSizes, numForces, numStrengths, numMats);
+dataPertLength = reshape(dataPertLength, numSizes, numForces, numStrengths, numMats);
+dataPertTimes = reshape(dataPertLength, numSizes, numForces, numStrengths, numMats);
+trueMats = reshape(trueMats, numSizes, numForces, numStrengths, numMats);
+trueKs = reshape(trueKs, numSizes, numForces, numStrengths, numMats);
 
-% Save experiment simulated data and connectivity matrices.
-save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
-save(sprintf('%s/trueMats.mat', expPath), 'trueMats');
-save(sprintf('%s/Ks.mat', expPath), 'Ks');
+predMats = reshape(predMats, numSizes, numForces, numStrengths, numMats);
+tprLog = reshape(tprLog, [numSizes, numForces, numStrengths, numMats]);
+fprLog = reshape(fprLog, [numSizes, numForces, numStrengths, numMats]);
+accLog = reshape(accLog, [numSizes, numForces, numStrengths, numMats]);
+numRerun = sum(reshape(numRerun, [numSizes, numForces, numStrengths, numMats]), 4);
+
+
+% Save experiment data
+for j = 1 : numSizes
+    for k = 1 : numForces
+        currExpPath = sprintf('%s/size%d/force%d', expPath, j, k);
+        if exist(currExpPath, 'dir') ~= 7
+            mkdir(currExpPath)
+        end
+        
+        currDataLog = dataLog{j, k, :, :};
+        currDataPertLength = dataPertLength{j, k, :, :};
+        currDataPertTimes = dataPertTimes{j, k, :, :};
+        currTrueMats = trueMats{j, k, :, :};
+        currTrueKs = trueKs{j, k, :, :};
+        
+        save(sprintf('%s/dataLog.mat', currExpPath), 'currDataLog');
+        save(sprintf('%s/dataPertLength.mat', currExpPath), 'currDataPertLength');
+        save(sprintf('%s/dataPertTimes.mat', currExpPath), 'currDataPertTimes');
+        save(sprintf('%s/trueMats.mat', currExpPath), 'currTrueMats');
+        save(sprintf('%s/trueKs.mat', currExpPath), 'currTrueKs');
+    end
+end
 
 % Save experiment results
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');
 save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
 save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
-save(sprintf('%s/accuracyLog.mat', resultPath), 'accuracyLog');
+save(sprintf('%s/accLog.mat', resultPath), 'accLog');
 save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
 
 
 %% Plot Results
 
-forceInd = 1;
+forceInd = 5;
 
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(numRerun(:, :, forceInd))
+imagesc(squeeze(numRerun(:, forceInd, :)))
 colorbar
 title('Number of Simulations Rerun by Our Analysis')
 xlabel('Connection Strength')
@@ -206,10 +231,10 @@ colormap jet
 
 % Show average accuracies for each number of perturbations and
 % observations.
-aveAccuracies = nanmean(accuracyLog, 4);
+aveAccuracies = nanmean(accLog, 4);
 figure(2)
 clims = [0, 1];
-imagesc(aveAccuracies(:, :, forceInd), clims)
+imagesc(squeeze(aveAccuracies(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
@@ -228,7 +253,7 @@ set(gca, 'TickLength', [0 0])
 aveTPR = nanmean(tprLog, 4);
 figure(3)
 clims = [0, 1];
-imagesc(aveTPR(:, :, forceInd), clims)
+imagesc(squeeze(aveTPR(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
@@ -247,7 +272,7 @@ set(gca, 'TickLength', [0 0])
 aveFPR = nanmean(fprLog, 4);
 figure(4)
 clims = [0, 1];
-imagesc(aveFPR(:, :, forceInd), clims)
+imagesc(squeeze(aveFPR(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])

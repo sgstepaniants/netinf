@@ -43,7 +43,7 @@ function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx,
         alignedPertIdx = cumObs(pertIdx);
         pertValues(:, obsIdx) = PertCorrs(observedData, alignedPertIdx, pertTimes, leftPad, rightPad, thresh);
     elseif strcmp(method, 'meanvar')
-        pertValues(:, obsIdx) = PertMeanVariances(observedData, pertTimes, movvarWidth, pad, thresh);
+        pertValues(:, obsIdx) = PertMeanVariances(observedData, pertTimes, movvarWidth, leftPad, rightPad, thresh);
     elseif strcmp(method, 'chngpt')
         pertValues(:, obsIdx) = PertChangepoints(observedData, pertTimes, pad, thresh);
     end

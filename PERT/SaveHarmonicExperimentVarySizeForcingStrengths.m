@@ -6,15 +6,15 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 2 : 5;
+networkSizes = 2 : 20;
 numSizes = length(networkSizes);
 
 % Connection strengths
-strengths = 0.1 : 0.3 : 1;
+strengths = 0.1 : 0.1 : 1;
 numStrengths = length(strengths);
 
 % Forcing magnitudes
-forces = 10 : 20 : 50;
+forces = 10 : 10 : 50;
 numForces = length(forces);
 
 % Initial conditions and masses
@@ -43,7 +43,7 @@ preprocfn = @(data) data;
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 10;
+numMats = 100;
 
 % Number of experimental trials
 numTrials = 1;
@@ -56,14 +56,14 @@ corrThresh = 0.2;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../HarmonicExperiments/%s', expName);
-if exist(expPath, 'dir') ~= 7
-    mkdir(expPath)
-else
+if exist(expPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
     if upper(m) == 'N'
         return
     end
+    rmdir(expPath, 's')
 end
+mkdir(expPath)
 
 % Save experiment parameters.
 save(sprintf('%s/params.mat', expPath));
@@ -103,6 +103,11 @@ parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
     [j, k, l, m] = ind2sub([numSizes, numForces, numStrengths, numMats], idx);
     fprintf('size: %d, force: %d, strength: %d\n', j, k, l)
     
+    currExpPath = sprintf('%s/size%d/force%d/strength%d/mat%d', expPath, j, k, l, m);
+    if exist(currExpPath, 'dir') ~= 7
+        mkdir(currExpPath)
+    end
+    
     % Count the number of iterations done by the parfor loop
     c.count();
 
@@ -122,12 +127,13 @@ parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
         numPerts = length(pertIdx);
 
         % If this adjacency matrix is bad, make a new simulation.
-        [disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping, force);
-        if waitTime > 500 || ~isempty(disconnectedNodes) || any(amplitudes > -0.00001)
-            numRerun(idx) = numRerun(idx) + 1;
-            continue
-        end
+        %[disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping, force);
+        %if waitTime > 500 || ~isempty(disconnectedNodes) || any(amplitudes > -0.00001)
+        %    numRerun(idx) = numRerun(idx) + 1;
+        %    continue
+        %end
         
+        waitTime = 500;
         endtime = waitTime * (numPerts + 1);
         nobs = round(endtime / deltat);
         tSpan = linspace(0, endtime, nobs);
@@ -143,65 +149,32 @@ parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
         end
 
         % Generate data with forced perturbations.
-        data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
+        data = rand(nvars, nobs); %GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
         noisyData = noisefn(data);
         
         obsIdx = true([1, nvars]);
         leftPad = 100;
         rightPad = pertLength;
-        [est, ~, ~, ~, ~, tableResults] = ...
-            PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
-                obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
+        %[est, ~, ~, ~, ~, tableResults] = ...
+        %    PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
+        %        obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
 
-        dataLog{idx} = noisyData;
-        dataPertLength{idx} = pertLength;
-        dataPertTimes{idx} = pertTimes;
-        trueMats{idx} = mat;
-        trueKs{idx} = K;
+        parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, pertLength, pertTimes, mat, K);
         
-        predMats{idx} = est;
-        tprLog(idx) = tableResults.tpr;
-        fprLog(idx) = tableResults.fpr;
-        accLog(idx) = tableResults.acc;
+        predMats{idx} = rand(nvars); %est;
+        tprLog(idx) = rand; %tableResults.tpr;
+        fprLog(idx) = rand; %tableResults.fpr;
+        accLog(idx) = rand; %tableResults.acc;
         break
     end
 end
 
-% Reshape data structures
-dataLog = reshape(dataLog, numSizes, numForces, numStrengths, numMats);
-dataPertLength = reshape(dataPertLength, numSizes, numForces, numStrengths, numMats);
-dataPertTimes = reshape(dataPertLength, numSizes, numForces, numStrengths, numMats);
-trueMats = reshape(trueMats, numSizes, numForces, numStrengths, numMats);
-trueKs = reshape(trueKs, numSizes, numForces, numStrengths, numMats);
 
 predMats = reshape(predMats, numSizes, numForces, numStrengths, numMats);
 tprLog = reshape(tprLog, [numSizes, numForces, numStrengths, numMats]);
 fprLog = reshape(fprLog, [numSizes, numForces, numStrengths, numMats]);
 accLog = reshape(accLog, [numSizes, numForces, numStrengths, numMats]);
 numRerun = sum(reshape(numRerun, [numSizes, numForces, numStrengths, numMats]), 4);
-
-
-% Save experiment data
-for j = 1 : numSizes
-    for k = 1 : numForces
-        currExpPath = sprintf('%s/size%d/force%d', expPath, j, k);
-        if exist(currExpPath, 'dir') ~= 7
-            mkdir(currExpPath)
-        end
-        
-        currDataLog = squeeze(dataLog(j, k, :, :));
-        currDataPertLength = squeeze(dataPertLength(j, k, :, :));
-        currDataPertTimes = squeeze(dataPertTimes(j, k, :, :));
-        currTrueMats = squeeze(trueMats(j, k, :, :));
-        currTrueKs = squeeze(trueKs(j, k, :, :));
-        
-        save(sprintf('%s/dataLog.mat', currExpPath), 'currDataLog');
-        save(sprintf('%s/dataPertLength.mat', currExpPath), 'currDataPertLength');
-        save(sprintf('%s/dataPertTimes.mat', currExpPath), 'currDataPertTimes');
-        save(sprintf('%s/trueMats.mat', currExpPath), 'currTrueMats');
-        save(sprintf('%s/trueKs.mat', currExpPath), 'currTrueKs');
-    end
-end
 
 % Save experiment results
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');

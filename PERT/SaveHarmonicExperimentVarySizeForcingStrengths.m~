@@ -103,6 +103,11 @@ parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
     [j, k, l, m] = ind2sub([numSizes, numForces, numStrengths, numMats], idx);
     fprintf('size: %d, force: %d, strength: %d\n', j, k, l)
     
+    currExpPath = sprintf('%s/size%d/force%d/strength%d/mat%d', expPath, j, k, l, m);
+    if exist(currExpPath, 'dir') ~= 7
+        mkdir(currExpPath)
+    end
+    
     % Count the number of iterations done by the parfor loop
     c.count();
 
@@ -153,11 +158,11 @@ parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
             PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
                 obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
 
-        dataLog{idx} = noisyData;
-        dataPertLength{idx} = pertLength;
-        dataPertTimes{idx} = pertTimes;
-        trueMats{idx} = mat;
-        trueKs{idx} = K;
+        save(sprintf('%s/dataLog.mat', currExpPath), 'noisyData');
+        save(sprintf('%s/dataPertLength.mat', currExpPath), 'pertLength');
+        save(sprintf('%s/dataPertTimes.mat', currExpPath), 'pertTimes');
+        save(sprintf('%s/trueMats.mat', currExpPath), 'mat');
+        save(sprintf('%s/trueKs.mat', currExpPath), 'K');
         
         predMats{idx} = est;
         tprLog(idx) = tableResults.tpr;

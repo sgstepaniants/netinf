@@ -6,7 +6,7 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 2 : 20;
+networkSizes = 2 : 2 : 20;
 numSizes = length(networkSizes);
 
 % Connection strengths
@@ -99,7 +99,7 @@ numRerun = zeros(1, numSizes * numForces * numStrengths * numMats);
 % Number of parallel processes
 M = 25;
 c = progress(numSizes * numForces * numStrengths * numMats);
-for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
+parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
     [j, k, l, m] = ind2sub([numSizes, numForces, numStrengths, numMats], idx);
     fprintf('size: %d, force: %d, strength: %d\n', j, k, l)
     
@@ -123,7 +123,7 @@ for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : n
 
         % If this adjacency matrix is bad, make a new simulation.
         [disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping, force);
-        if ~isempty(disconnectedNodes) || any(amplitudes > -0.00001) || waitTime > 500
+        if ~isfinite(waitTime) || waitTime > 500 %|| ~isempty(disconnectedNodes) || any(amplitudes > -0.00001)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
@@ -143,15 +143,15 @@ for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : n
         end
 
         % Generate data with forced perturbations.
-        data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
+        data = rand([nvars, nobs]); %GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
         noisyData = noisefn(data);
         
         obsIdx = true([1, nvars]);
         leftPad = 100;
         rightPad = pertLength;
-        [est, ~, ~, ~, ~, tableResults] = ...
-            PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
-                obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
+        %[est, ~, ~, ~, ~, tableResults] = ...
+        %    PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
+        %        obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
 
         dataLog{idx} = noisyData;
         dataPertLength{idx} = pertLength;
@@ -159,10 +159,10 @@ for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : n
         trueMats{idx} = mat;
         trueKs{idx} = K;
         
-        predMats{idx} = est;
-        tprLog(idx) = tableResults.tpr;
-        fprLog(idx) = tableResults.fpr;
-        accLog(idx) = tableResults.acc;
+        predMats{idx} = rand(nvars); %est;
+        tprLog(idx) = rand; %tableResults.tpr;
+        fprLog(idx) = rand; %tableResults.fpr;
+        accLog(idx) = rand; %tableResults.acc;
         break
     end
 end
@@ -189,11 +189,11 @@ for j = 1 : numSizes
             mkdir(currExpPath)
         end
         
-        currDataLog = dataLog{j, k, :, :};
-        currDataPertLength = dataPertLength{j, k, :, :};
-        currDataPertTimes = dataPertTimes{j, k, :, :};
-        currTrueMats = trueMats{j, k, :, :};
-        currTrueKs = trueKs{j, k, :, :};
+        currDataLog = squeeze(dataLog(j, k, :, :));
+        currDataPertLength = squeeze(dataPertLength(j, k, :, :));
+        currDataPertTimes = squeeze(dataPertTimes(j, k, :, :));
+        currTrueMats = squeeze(trueMats(j, k, :, :));
+        currTrueKs = squeeze(trueKs(j, k, :, :));
         
         save(sprintf('%s/dataLog.mat', currExpPath), 'currDataLog');
         save(sprintf('%s/dataPertLength.mat', currExpPath), 'currDataPertLength');
@@ -218,15 +218,15 @@ forceInd = 1;
 % Show number of simulations that were skipped.
 figure(1)
 imagesc(squeeze(numRerun(:, forceInd, :)))
+set(gca,'YDir','normal')
+colormap jet
 colorbar
 title('Number of Simulations Rerun by Our Analysis')
 xlabel('Connection Strength')
 ylabel('Network Size')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
-set(gca,'TickLength', [0 0])
-set(gca,'YDir','normal')
-colormap jet
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
+%set(gca,'TickLength', [0 0])
 
 
 % Show average accuracies for each number of perturbations and
@@ -236,16 +236,16 @@ figure(2)
 clims = [0, 1];
 imagesc(squeeze(aveAccuracies(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average Accuracy over Simulations')
 xlabel('Connection Strength')
 ylabel('Network Size')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
-set(gca, 'TickLength', [0 0])
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
+%set(gca, 'TickLength', [0 0])
 
 
 % Show average TPR for each number of perturbations and
@@ -255,8 +255,8 @@ figure(3)
 clims = [0, 1];
 imagesc(squeeze(aveTPR(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average TPR over Simulations')
@@ -264,7 +264,7 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTickLabel', strengths)
 set(gca, 'YTickLabel', networkSizes)
-set(gca, 'TickLength', [0 0])
+%set(gca, 'TickLength', [0 0])
 
 
 % Show average FPR for each number of perturbations and
@@ -274,8 +274,8 @@ figure(4)
 clims = [0, 1];
 imagesc(squeeze(aveFPR(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average FPR over Simulations')
@@ -283,4 +283,4 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTickLabel', strengths)
 set(gca, 'YTickLabel', networkSizes)
-set(gca, 'TickLength', [0 0])
+%set(gca, 'TickLength', [0 0])

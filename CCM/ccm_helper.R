@@ -3,12 +3,22 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
   nvars <- dim(data)[1]
   ccm_rho_graphs <- array(0, c(nvars, nvars, length(lib_sizes), num_trials))
   
+  hasTrials = length(dim(data)) >= 3
+  if (!hasTrials) {
+    numTrials = 1
+  }
+  
   for (i in 1:nvars) {
     for (j in 1:nvars) {
       if (i != j) {
         sum_rho_graph <- numeric(length(lib_sizes))
         for (t in 1:num_trials) {
-          xmap <- ccm(t(data[,,t]), E=E, lib_column=i, 
+          currData = data
+          if (hasTrials) {
+            currData = data[,,t]
+          }
+          
+          xmap <- ccm(t(currData), E=E, lib_column=i, 
                       target_column=j, lib_sizes=lib_sizes,
                       num_samples=num_samples, random_libs=TRUE, replace=TRUE);
           xmap_means <- ccm_means(xmap)
@@ -20,7 +30,7 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
           #legend(x = "topleft", legend = paste(i, "xmap", j),
           #       col = c("red"), lwd = 1, bty = "n", inset = 0.02, cex = 0.8)
         }
-        #print(paste(j, "causes", i))
+        print(paste(j, "causes", i))
       }
     }
   }

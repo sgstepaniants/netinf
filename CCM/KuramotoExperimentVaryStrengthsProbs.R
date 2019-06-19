@@ -7,7 +7,7 @@ source('ccm_helper.R')
 source('CCMBaseExperiment.R')
 source('AnalysisFunctions/moving_average.R')
 
-exp_name <- "VaryStrengthsProbs_Size2"
+exp_name <- "VaryStrengthsProbs_Size5"
 exp_path <- sprintf("../KuramotoExperiments/EXP%s", exp_name)
 
 print(exp_path)

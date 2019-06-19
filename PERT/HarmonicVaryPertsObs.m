@@ -1,45 +1,80 @@
 clear all; close all; clc;
+run '../mvgc_v1.0/startup.m'
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
-addpath('../kmeans_opt/')
 
-nvars = 5;
-prob = 0.5;
-spring = 0.1;
+expNum = 'PertVarySizeForcingStrengths';
+
+% Network size
+nvars = 10;
+
+% Connection strength
+strength = 0.1;
+
+% Forcing magnitude
+force = 50;
+
+% Initial conditions and masses
+pfn = @(n) randfn(n, -0.5, 0.5);
+vfn = @(n) randfn(n, -1, 1);
+mfn = @(n) constfn(n, 1);
+
+% Specify the damping constant.
 damping = 0.3;
-pertForce = 30;
+cfn = @(n) constfn(n, damping);
 
-expNum = sprintf('EXPVaryPertsObs(nvars%d_prob%.2f_spring%.2f_damping%.2f_pertf%.2f)', nvars, prob, spring, damping, pertForce);
-dataPath = sprintf('../HarmonicExperiments/%s', expNum);
+% Specify noise and prepocessing for data.
+measParam = 0.1;
+noisefn = @(data) WhiteGaussianNoise(data, measParam);
+preprocfn = @(data) data;
 
-if exist(dataPath, 'dir') ~= 7
-    error('Data not found: %s', dataPath)
-end
+% Delta t
+deltat = 0.1;
 
-outputPath = sprintf('%s/PertResults', dataPath);
-if exist(outputPath, 'dir') ~= 7
-    mkdir(outputPath)
+% Specify boundary conditions.
+bc = 'fixed';
+
+% Probabilities of network connections.
+prob = 0.5;
+
+% Number of matrices to average results over.
+numMats = 100;
+
+% Number of experimental trials
+numTrials = 1;
+
+method = 'corr';
+
+% Threshold for correlation algorithm
+corrThresh = 0.2;
+
+% Check that directory with experiment data exists
+expName = sprintf('EXP%s', expNum);
+expPath = sprintf('../HarmonicExperiments/%s', expName);
+if exist(expPath, 'dir') ~= 7
+    mkdir(expPath)
 else
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', outputPath),'s');
+    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
     if upper(m) == 'N'
        return
     end
 end
 
-% Threshold for correlation algorithm
-corrThresh = 0.5;
+% Save experiment parameters.
+save(sprintf('%s/params.mat', expPath));
 
-% Padding for window
-pad = 1;
 
-% Method for building probability matrix
-method = 'corr';
+% Make directory to hold result files if one does not already exist
+resultPath = sprintf('%s/PertResults', expPath);
+if exist(resultPath, 'dir') ~= 7
+    mkdir(resultPath)
+else
+    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+    if upper(m) == 'N'
+       return
+    end
+end
 
-% How often to save experiment results
-freq = 1;
-
-% Function to preprocess data
-preprocfn = @(data) data;
 
 %% Evaluate Algorithm on Data for Varying Numbers of Perturbations and Observations
 load(sprintf('%s/params.mat', dataPath))

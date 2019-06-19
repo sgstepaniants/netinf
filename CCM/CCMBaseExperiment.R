@@ -13,7 +13,10 @@ CCMBaseExperiment <- function(data, mats, E, num_libs, num_trials=dim(data)[3], 
   }
 
   nvars <- dim(mats)[1] # number of variables / oscillators
-  num_mats <- dim(mats)[3] # number of matrices we try
+  num_mats <- 1
+  if (length(dim(mats)) == 3) {
+    num_mats <- dim(mats)[3] # number of matrices we try
+  }
   if (is.null(data_obs_idx)) {
     data_obs_idx <- matrix(TRUE, nrow=num_mats, ncol=nvars)
   }
@@ -33,13 +36,22 @@ CCMBaseExperiment <- function(data, mats, E, num_libs, num_trials=dim(data)[3], 
   for (i in 1:num_mats) {
     obs_idx <- data_obs_idx[i,]
     num_obs <- sum(obs_idx)
-
-    truth <- mats[,,i]
+    
+    hasMats = length(dim(mats)) == 3
+    truth <- mats
+    if (hasMats) {
+      truth <- mats[,,i]
+    }
     num_positives <- sum(truth[obs_idx, obs_idx] & !diag(nvars))
     num_negatives <- sum(!truth[obs_idx, obs_idx] & !diag(nvars))
-
+    
+    hasTrials = length(dim(data)) >= 3
     if (is.list(data)) {
       preproc_data <- preprocfn(data[[i]][[1]][obs_idx,,])
+    } else if (!hasTrials && !hasMats) {
+      preproc_data <- preprocfn(data[obs_idx,])
+    } else if (hasTrials && !hasMats) {
+      preproc_data <- preprocfn(data[obs_idx,,])
     } else {
       preproc_data <- preprocfn(data[obs_idx,,,i])
     }

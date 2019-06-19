@@ -6,15 +6,15 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 2 : 20;
+networkSizes = 4:5;
 numSizes = length(networkSizes);
 
 % Connection strengths
-strengths = 10 : 10 : 100; % IMPORTANT PARAMETER
+strengths = 50:10:100; % IMPORTANT PARAMETER
 numStrengths = length(strengths);
 
 % Forcing magnitudes
-forces = 10 : 10 : 100; % IMPORTANT PARAMETER
+forces = 100; % IMPORTANT PARAMETER
 numForces = length(forces);
 
 % Initial conditions
@@ -38,7 +38,7 @@ waitTime = 10;
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 3;
 
 % Number of experimental trials
 numTrials = 1;
@@ -67,7 +67,7 @@ end
 save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
-resultPath = sprintf('%s/GCResults', expPath);
+resultPath = sprintf('%s/PertResults', expPath);
 if exist(resultPath, 'dir') ~= 7
     mkdir(resultPath)
 else
@@ -96,7 +96,7 @@ numRerun = zeros(1, numSizes * numForces * numStrengths * numMats);
 % Number of parallel processes
 M = 25;
 c = progress(numSizes * numForces * numStrengths * numMats);
-for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
+parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
     [j, k, l, m] = ind2sub([numSizes, numForces, numStrengths, numMats], idx);
     fprintf('size: %d, force: %d, strength: %d\n', j, k, l)
     
@@ -172,10 +172,10 @@ for j = 1 : numSizes
             mkdir(currExpPath)
         end
         
-        currDataLog = dataLog{j, k, :, :};
-        currDataPertLength = dataPertLength{j, k, :, :};
-        currDataPertTimes = dataPertTimes{j, k, :, :};
-        currTrueMats = trueMats{j, k, :, :};
+        currDataLog = squeeze(dataLog(j, k, :, :));
+        currDataPertLength = squeeze(dataPertLength(j, k, :, :));
+        currDataPertTimes = squeeze(dataPertTimes(j, k, :, :));
+        currTrueMats = squeeze(trueMats(j, k, :, :));
         
         save(sprintf('%s/dataLog.mat', currExpPath), 'currDataLog');
         save(sprintf('%s/dataPertLength.mat', currExpPath), 'currDataPertLength');
@@ -199,15 +199,15 @@ forceInd = 1;
 % Show number of simulations that were skipped.
 figure(1)
 imagesc(squeeze(numRerun(:, forceInd, :)))
+set(gca,'YDir','normal')
+colormap jet
 colorbar
 title('Number of Simulations Rerun by Our Analysis')
 xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTickLabel', strengths)
 set(gca, 'YTickLabel', networkSizes)
-set(gca,'TickLength', [0 0])
-set(gca,'YDir','normal')
-colormap jet
+%set(gca,'TickLength', [0 0])
 
 
 % Show average accuracies for each number of perturbations and
@@ -217,16 +217,16 @@ figure(2)
 clims = [0, 1];
 imagesc(squeeze(aveAccuracies(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average Accuracy over Simulations')
 xlabel('Connection Strength')
 ylabel('Network Size')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
-set(gca, 'TickLength', [0 0])
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
+%set(gca, 'TickLength', [0 0])
 
 
 % Show average TPR for each number of perturbations and
@@ -236,8 +236,8 @@ figure(3)
 clims = [0, 1];
 imagesc(squeeze(aveTPR(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average TPR over Simulations')
@@ -245,7 +245,7 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTickLabel', strengths)
 set(gca, 'YTickLabel', networkSizes)
-set(gca, 'TickLength', [0 0])
+%set(gca, 'TickLength', [0 0])
 
 
 % Show average FPR for each number of perturbations and
@@ -255,8 +255,8 @@ figure(4)
 clims = [0, 1];
 imagesc(squeeze(aveFPR(:, forceInd, :)), clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average FPR over Simulations')
@@ -264,4 +264,4 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTickLabel', strengths)
 set(gca, 'YTickLabel', networkSizes)
-set(gca, 'TickLength', [0 0])
+%set(gca, 'TickLength', [0 0])

@@ -25,13 +25,14 @@ cfn = @(n) constfn(n, damping);
 prob = 0.5;
 strength = 1;
 
-mat = MakeNetworkSymmER(nvars, prob, true);
+mat = MakeNetworkER(nvars, prob, true);
 K = MakeNetworkTriDiag(nvars+2, false);
 K(2:nvars+1, 2:nvars+1) = mat;
 K = strength * K;
 
 forcingFunc = zeros([nvars, length(tSpan)]);
-%forcingFunc(ceil(nvars/2), 1) = 10;
+forcingFunc(1, 200:250) = 50;
+forcingFunc(5, 300:350) = 50;
 
 numTrials = 1;
 data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
@@ -42,4 +43,4 @@ noisyData = noisefn(data);
 
 tau1 = mdDelay(data.', 'maxLag', 50, 'plottype', 'all')
 tau2 = mdDelay(data.', 'maxLag', 50, 'plottype', 'mean')
-[fnnPercent, embeddingDimension] = mdFnn(data.', round(tau1))
+[fnnPercent, embeddingDimension] = mdFnn(data(1, :).', round(tau1))

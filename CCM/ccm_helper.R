@@ -19,7 +19,7 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
           }
           
           xmap <- ccm(t(currData), E=E, lib_column=i, 
-                      target_column=j, lib_sizes=lib_sizes,
+                      target_column=j, lib_sizes=lib_sizes, tau=15,
                       num_samples=num_samples, random_libs=TRUE, replace=TRUE);
           xmap_means <- ccm_means(xmap)
           

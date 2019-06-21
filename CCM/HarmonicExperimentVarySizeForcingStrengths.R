@@ -38,9 +38,9 @@ num_libs <- 1
 num_trials <- 1
 num_samples <- 100
 
-window_size <- 10
-preprocfn <- function(x) {moving_average(x, window_size)}
-#preprocfn <- identity
+#window_size <- 10
+#preprocfn <- function(x) {moving_average(x, window_size)}
+preprocfn <- identity
 
 # Save experiment parameters
 exp_params <- list("E"=E, "num_libs"=num_libs, "num_samples"=num_samples, "preprocfn"=preprocfn)
@@ -59,9 +59,11 @@ results <-
   foreach (j = 1:num_sizes, .combine='cbind') %:%
     foreach (k = 1:num_forces, .combine='cbind') %:%
       foreach (l = 1:num_strengths, .combine='cbind') %:%
-        foreach (m = 1:num_mats, .combine='cbind') %dopar% {
-          data <- readMat(sprintf("%s/size%d/force%d/dataLog.mat", exp_path, j, k))$currDataLog[[(m - 1) * num_strengths + l]][[1]]
-          mat <- readMat(sprintf("%s/size%d/force%d/trueMats.mat", exp_path, j, k))$currTrueMats[[(m - 1) * num_strengths + l]][[1]]
+        foreach (m = 1:num_mats, .combine='cbind') %do% {
+          print(sprintf('size: %d, force: %d, strength: %d, mat: %d', j, k, l, m))
+          data_log <- readMat(sprintf("%s/size%d/force%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, l, m))
+          data <- data_log$noisyData
+          mat <- data_log$mat
           result <- CCMBaseExperiment(data, mat, E, num_libs, num_trials, num_samples, preprocfn)
         }
 

@@ -16,14 +16,15 @@ expPath = sprintf('../KuramotoExperiments/%s', expName);
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') ~= 7
-    mkdir(resultPath)
-else
+if exist(resultPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
     if upper(m) == 'N'
        return
     end
+    rmdir(resultPath, 's')
 end
+mkdir(resultPath)
+
 
 %% Generate Data and Run Granger Causality Experiments
 load(sprintf('%s/params.mat', expPath), '-regexp', '^(?!expNum$|expName$|expPath$|resultPath$|preprocfn$).')
@@ -92,15 +93,15 @@ forceInd = 1;
 
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(squeeze(numRerun(:, forceInd, :)))
+imagesc(reshape(numRerun(:, forceInd, :), [numSizes, numStrengths]))
 set(gca,'YDir','normal')
 colormap jet
 colorbar
 title('Number of Simulations Rerun by Our Analysis')
-xlabel('Network Size')
-ylabel('Connection Strength')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
+xlabel('Connection Strength')
+ylabel('Network Size')
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
 set(gca,'TickLength', [0 0])
 
 
@@ -109,17 +110,17 @@ set(gca,'TickLength', [0 0])
 aveAccuracies = nanmean(accLog, 4);
 figure(2)
 clims = [0, 1];
-imagesc(squeeze(aveAccuracies(:, forceInd, :)), clims)
+imagesc(reshape(aveAccuracies(:, forceInd, :), [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average Accuracy over Simulations')
-xlabel('Network Size')
-ylabel('Connection Strength')
-set(gca, 'XTickLabel', networkSizes)
-set(gca, 'YTickLabel', strengths)
+xlabel('Connection Strength')
+ylabel('Network Size')
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
 %set(gca, 'TickLength', [0 0])
 
 
@@ -128,17 +129,17 @@ set(gca, 'YTickLabel', strengths)
 aveTPR = nanmean(tprLog, 4);
 figure(3)
 clims = [0, 1];
-imagesc(squeeze(aveTPR(:, forceInd, :)), clims)
+imagesc(reshape(aveTPR(:, forceInd, :), [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average TPR over Simulations')
-xlabel('Network Size')
-ylabel('Connection Strength')
-set(gca, 'XTickLabel', networkSizes)
-set(gca, 'YTickLabel', strengths)
+xlabel('Connection Strength')
+ylabel('Network Size')
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
 %set(gca, 'TickLength', [0 0])
 
 
@@ -147,15 +148,15 @@ set(gca, 'YTickLabel', strengths)
 aveFPR = nanmean(fprLog, 4);
 figure(4)
 clims = [0, 1];
-imagesc(squeeze(aveFPR(:, forceInd, :)), clims)
+imagesc(reshape(aveFPR(:, forceInd, :), [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
 colormap jet
 colorbar
 title('Average FPR over Simulations')
-xlabel('Network Size')
-ylabel('Connection Strength')
-set(gca, 'XTickLabel', networkSizes)
-set(gca, 'YTickLabel', strengths)
+xlabel('Connection Strength')
+ylabel('Network Size')
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
 %set(gca, 'TickLength', [0 0])

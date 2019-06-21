@@ -53,7 +53,7 @@ method = 'meanvar';
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
-expPath = sprintf('../KuramotoExperiments/%s', expName);
+expPath = sprintf('../HarmonicExperiments/%s', expName);
 if exist(expPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
     if upper(m) == 'N'
@@ -171,16 +171,16 @@ forceInd = 1;
 
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(squeeze(numRerun(:, forceInd, :)))
+imagesc(reshape(numRerun(:, forceInd, :), [numSizes, numStrengths]))
 set(gca,'YDir','normal')
 colormap jet
 colorbar
 title('Number of Simulations Rerun by Our Analysis')
 xlabel('Connection Strength')
 ylabel('Network Size')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
-%set(gca,'TickLength', [0 0])
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
+set(gca,'TickLength', [0 0])
 
 
 % Show average accuracies for each number of perturbations and
@@ -188,7 +188,7 @@ set(gca, 'YTickLabel', networkSizes)
 aveAccuracies = nanmean(accLog, 4);
 figure(2)
 clims = [0, 1];
-imagesc(squeeze(aveAccuracies(:, forceInd, :)), clims)
+imagesc(reshape(aveAccuracies(:, forceInd, :), [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -207,7 +207,7 @@ set(gca, 'YTick', networkSizes)
 aveTPR = nanmean(tprLog, 4);
 figure(3)
 clims = [0, 1];
-imagesc(squeeze(aveTPR(:, forceInd, :)), clims)
+imagesc(reshape(aveTPR(:, forceInd, :), [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -216,8 +216,8 @@ colorbar
 title('Average TPR over Simulations')
 xlabel('Connection Strength')
 ylabel('Network Size')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
 %set(gca, 'TickLength', [0 0])
 
 
@@ -226,7 +226,7 @@ set(gca, 'YTickLabel', networkSizes)
 aveFPR = nanmean(fprLog, 4);
 figure(4)
 clims = [0, 1];
-imagesc(squeeze(aveFPR(:, forceInd, :)), clims)
+imagesc(reshape(aveFPR(:, forceInd, :), [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -235,6 +235,6 @@ colorbar
 title('Average FPR over Simulations')
 xlabel('Connection Strength')
 ylabel('Network Size')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', networkSizes)
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', networkSizes)
 %set(gca, 'TickLength', [0 0])

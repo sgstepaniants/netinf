@@ -1,4 +1,4 @@
-CCMBaseExperiment <- function(data, mats, E, num_libs, num_trials=dim(data)[3], num_samples=100,
+CCMBaseExperiment <- function(data, mats, E, num_libs, tau=1, num_trials=dim(data)[3], num_samples=100,
                               preprocfn=identity, freq=1, result_path=NULL, data_obs_idx=NULL) {
   # return: votingMats, est, tableResults
   save_data <- TRUE
@@ -61,12 +61,12 @@ CCMBaseExperiment <- function(data, mats, E, num_libs, num_trials=dim(data)[3], 
     lib_sizes <- delta * 1:num_libs
 
     # Run network inference on this data
-    graphs <- get_ccm_rho(preproc_data, E, lib_sizes, num_trials, num_samples)
+    graphs <- get_ccm_rho(preproc_data, E, lib_sizes, tau, num_trials, num_samples)
 
     ccm_rho_graphs[,,,, i] <- graphs
 
     # Compute the adjacency matrix predicted by averaging the CCM trials
-    voted_graphs <- apply(graphs, c(1, 2, 4), mean)
+    voted_graphs <- apply(graphs, c(1, 2, 3), mean)
     est[,, i] <- apply(voted_graphs, c(1, 2), mean) > 0.5
 
     # Save results

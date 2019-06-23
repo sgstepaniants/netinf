@@ -1,5 +1,5 @@
 # TODO: Maybe add a parameter for coordinate randomization.
-get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples=100) {
+get_ccm_rho <- function(data, E, lib_sizes, tau=1, num_trials=dim(data)[3], num_samples=100) {
   nvars <- dim(data)[1]
   ccm_rho_graphs <- array(0, c(nvars, nvars, length(lib_sizes), num_trials))
   
@@ -19,7 +19,7 @@ get_ccm_rho <- function(data, E, lib_sizes, num_trials=dim(data)[3], num_samples
           }
           
           xmap <- ccm(t(currData), E=E, lib_column=i, 
-                      target_column=j, lib_sizes=lib_sizes, tau=15,
+                      target_column=j, lib_sizes=lib_sizes, tau=tau,
                       num_samples=num_samples, random_libs=TRUE, replace=TRUE);
           xmap_means <- ccm_means(xmap)
           

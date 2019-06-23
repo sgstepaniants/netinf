@@ -3,7 +3,7 @@ addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
 % Network size
-nvars = 2;
+nvars = 5;
 
 % Experiment name
 expNum = sprintf('VaryStrengthsProbs_Size%d', nvars);
@@ -34,11 +34,11 @@ forcingFunc = zeros([nvars, nobs]);
 bc = 'fixed';
 
 % Probabilities of network connections to try.
-probs = 0.1:0.1:1;
+probs = 1 %0.1:0.1:1;
 numProbs = length(probs);
 
 % Connection strengths to try.
-strengths = 1:1:10;
+strengths = 5 %1:1:10;
 numStrengths = length(strengths);
 
 % Number of matrices to try for each probability and connection strength
@@ -46,7 +46,7 @@ numStrengths = length(strengths);
 numMats = 10;
 
 % Number of simulation trials.
-numTrials = 10;
+numTrials = 100;
 
 % Spectral radius threshold for MVGC toolbox.
 rhoThresh = 0.995;
@@ -131,7 +131,7 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
 
         dataObsIdx = true([1, nvars]); % default parameter
         [est, tableResults] = GrangerBaseExperiment(noisyData, ...
-            mat, preprocfn, freq, '', dataObsIdx, rhoThresh);
+            mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;
             continue
@@ -162,18 +162,18 @@ fprLog = reshape(fprLog, [numProbs, numStrengths, numMats]);
 accuracyLog = reshape(accuracyLog, [numProbs, numStrengths, numMats]);
 diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
 
-% Save experiment simulated data and connectivity matrices.
-save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
-save(sprintf('%s/trueMats.mat', expPath), 'trueMats');
-save(sprintf('%s/Ks.mat', expPath), 'Ks');
-
-% Save experiment results
-save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
-save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
-save(sprintf('%s/accuracyLog.mat', resultPath), 'accuracyLog');
-save(sprintf('%s/diagnosticsLog.mat', resultPath), 'diagnosticsLog');
-save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
+% % Save experiment simulated data and connectivity matrices.
+% save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
+% save(sprintf('%s/trueMats.mat', expPath), 'trueMats');
+% save(sprintf('%s/Ks.mat', expPath), 'Ks');
+% 
+% % Save experiment results
+% save(sprintf('%s/predMats.mat', resultPath), 'predMats');
+% save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
+% save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
+% save(sprintf('%s/accuracyLog.mat', resultPath), 'accuracyLog');
+% save(sprintf('%s/diagnosticsLog.mat', resultPath), 'diagnosticsLog');
+% save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
 
 
 %% Plot Results

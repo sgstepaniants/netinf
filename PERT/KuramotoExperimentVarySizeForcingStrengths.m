@@ -6,15 +6,15 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 2 : 20;
+networkSizes = 20;
 numSizes = length(networkSizes);
 
 % Connection strengths
-strengths = 10 : 10 : 100; % IMPORTANT PARAMETER
+strengths = 100; % IMPORTANT PARAMETER
 numStrengths = length(strengths);
 
 % Forcing magnitudes
-forces = 10 : 10 : 100; % IMPORTANT PARAMETER
+forces = 100; % IMPORTANT PARAMETER
 numForces = length(forces);
 
 % Initial conditions
@@ -38,7 +38,7 @@ waitTime = 10;
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 2;
 
 % Number of experimental trials
 numTrials = 1;
@@ -53,7 +53,7 @@ method = 'meanvar';
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
-expPath = sprintf('../HarmonicExperiments/%s', expName);
+expPath = sprintf('../KuramotoExperiments/%s', expName);
 if exist(expPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
     if upper(m) == 'N'

@@ -80,9 +80,10 @@ fpr_log <- array(NaN, c(num_probs, num_strengths, num_mats))
 acc_log <- array(NaN, c(num_probs, num_strengths, num_mats))
 for (ind in 1:(num_probs*num_strengths*num_mats)) {
   result <- results[, ind]
-  i = floor((ind-1) / (num_strengths * num_mats)) + 1
-  j = (floor((ind-1) / num_mats) %% num_strengths) + 1
-  m = ((ind-1) %% num_mats) + 1
+  idx <- arrayInd(ind, c(num_probs, num_strengths, num_mats))
+  i <- idx[1]
+  j <- idx[2]
+  m <- idx[3]
   
   pred_mats[,, i, j, m] <- result$pred_mats
   graph_log[,,,, i, j, m] <- result$graphs

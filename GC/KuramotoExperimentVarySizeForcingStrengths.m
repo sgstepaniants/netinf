@@ -5,7 +5,7 @@ addpath('../DataScripts/SimulateData/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Preprocessing function for data.
-preprocfn = @(data) downsample(cos(data).', 1).';
+preprocfn = @(data) downsample(cos(data).', 50).';
 
 % Spectral radius threshold for MVGC toolbox.
 rhoThresh = 1;
@@ -44,15 +44,19 @@ for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : n
     [j, k, l, m] = ind2sub([numSizes, numForces, numStrengths, numMats], idx);
     fprintf('size: %d, force: %d, strength: %d\n', j, k, l)
     
+    currExpPath = sprintf('%s/size%d/force%d/strength%d/mat%d', expPath, j, k, l, m);
+    if exist(currExpPath, 'dir') ~= 7
+        mkdir(currExpPath)
+    end
+    
     % Count the number of iterations done by the parfor loop
     c.count();
 
     while true
-        dataLog = load(sprintf('%s/size%d/force%d/dataLog.mat', expPath, j, k));
-        trueMats = load(sprintf('%s/size%d/force%d/trueMats.mat', expPath, j, k));
+        dataLog = load(sprintf('%s/dataLog.mat', currExpPath));
         
-        data = dataLog.currDataLog{l, m};
-        mat = trueMats.currTrueMats{l, m};
+        data = dataLog.noisyData;
+        mat = dataLog.mat;
         nvars = size(mat, 1);
         dataObsIdx = true([1, nvars]); % default parameter
         [est, tableResults] = GrangerBaseExperiment(data, ...

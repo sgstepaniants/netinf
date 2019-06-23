@@ -34,14 +34,15 @@ num_mats <- dim(data_log)[4]
 true_mats <- readMat(sprintf("%s/trueMats.mat", exp_path))[[1]]
 
 # Perform CCM analysis on sample data
-E <- 3
+E <- 50
+tau <- 15
 num_libs <- 1
-num_trials <- 10
+num_trials <- 1
 num_samples <- 100
 
 exp_params <- list("E"=E, "num_libs"=num_libs, "num_trials"=num_trials, "num_samples"=num_samples)
 
-result <- CCMBaseExperiment(data_log, true_mats, E, num_libs, num_trials, num_samples)
+result <- CCMBaseExperiment(data_log, true_mats, E, num_libs, tau, num_trials, num_samples)
 pred_mats <- result$pred_mats
 ccm_rho_graphs <- result$graphs
 

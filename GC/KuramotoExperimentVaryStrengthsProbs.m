@@ -103,15 +103,6 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
         % Create adjacency matrices.
         mat = MakeNetworkER(nvars, prob, true);
         
-        % If any nodes in the network are not connected to the walls or
-        % the eigenvalues of the system have positive real parts, don't
-        % use this network.
-        disconnectedNodes = checkHarmonicMat(mat, 0);
-        if ~isempty(disconnectedNodes)
-            numRerun(idx) = numRerun(idx) + 1;
-            continue
-        end
-        
         % Specify forcing function for oscillators.
         forcingFunc = zeros([nvars, nobs]);
 

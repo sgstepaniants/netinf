@@ -108,23 +108,23 @@ for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtime
         forcingFunc = zeros([nvars, nobs]);
 
         % Generate data with forced perturbations.
-        data = GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
+        data = rand(nvars, nobs, numTrials); %GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
         noisyData = noisefn(data);
 
-        dataObsIdx = true([1, nvars]); % default parameter
-        [est, tableResults] = GrangerBaseExperiment(noisyData, ...
-                mat, preprocfn, dataObsIdx, rhoThresh);
-        if isnan(est)
-            numRerun(idx) = numRerun(idx) + 1;
-            continue
-        end
+        %dataObsIdx = true([1, nvars]); % default parameter
+        %[est, tableResults] = GrangerBaseExperiment(noisyData, ...
+        %        mat, preprocfn, dataObsIdx, rhoThresh);
+        %if isnan(est)
+        %    numRerun(idx) = numRerun(idx) + 1;
+        %    continue
+        %end
 
         parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
 
-        predMats{idx} = est;
-        tprLog(idx) = tableResults.tpr;
-        fprLog(idx) = tableResults.fpr;
-        accLog(idx) = tableResults.acc;
+        predMats{idx} = rand(nvars); %est;
+        tprLog(idx) = rand; %tableResults.tpr;
+        fprLog(idx) = rand; %tableResults.fpr;
+        accLog(idx) = rand; %tableResults.acc;
         break
     end
 end

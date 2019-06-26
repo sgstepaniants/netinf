@@ -1,7 +1,7 @@
 # TODO: Maybe add a parameter for coordinate randomization.
 get_ccm_rho <- function(data, E, lib_sizes, tau=1, num_trials=dim(data)[3], num_samples=100) {
   nvars <- dim(data)[1]
-  ccm_rho_graphs <- array(0, c(nvars, nvars, length(lib_sizes), num_trials))
+  ccm_rho_graphs <- array(NaN, c(nvars, nvars, length(lib_sizes), num_trials))
   
   hasTrials = length(dim(data)) >= 3
   if (!hasTrials) {

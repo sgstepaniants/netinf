@@ -36,8 +36,8 @@ data3 <- data_log[[3]]
 true_mat <- readMat(sprintf("%s/trueMat.mat", exp_path))[[1]]
 
 # Perform CCM analysis on sample data
-E <- 2
-tau <- 1
+E <- 5
+tau <- 5
 num_libs <- 10
 num_trials <- 100
 num_samples <- 100
@@ -48,10 +48,10 @@ saveRDS(exp_params, sprintf("%s/exp_params.rds", result_path))
 result1 <- CCMBaseExperiment(data1, true_mat, E, num_libs, tau, num_trials, num_samples)
 pred_mat1 <- drop(result1$pred_mats)
 graph1 <- drop(result1$graph)
-
-# Compute the confusion matrix
-confusion_mat <- confusion_matrix(true_mats, pred_mats)
-print(confusion_mat)
+table_results1 <- result1$table_results
+tpr1 <- table_results1$tpr
+fpr1 <- table_results1$fpr
+acc1 <- table_results1$acc
 
 # Save experiment result files.
 saveRDS(pred_mats, sprintf("%s/pred_mats.rds", result_path))

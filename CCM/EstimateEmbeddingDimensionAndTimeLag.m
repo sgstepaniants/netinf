@@ -1,17 +1,19 @@
 clear all; close all; clc;
+addpath('../DataScripts/SimulateData')
 addpath('../DataScripts/SimulateData/InitFunctions')
 addpath('../mdembedding')
 
 %% Generate time series data
 
-nvars = 20;
+nvars = 2;
 bc = 'fixed';
 
-endtime = 10;
-nobs = 500;
+endtime = 25;
+deltat = 0.1;
+nobs = round(endtime / deltat);
 tSpan = linspace(0, endtime, nobs);
 
-noisefn  = @(data) WhiteGaussianNoise(data, 0.01);
+noisefn  = @(data) WhiteGaussianNoise(data, 0.1);
 
 % Initial conditions and masses
 pfn = @(n) randfn(n, -0.5, 0.5);
@@ -19,28 +21,26 @@ vfn = @(n) randfn(n, -1, 1);
 mfn = @(n) constfn(n, 1);
 
 % Specify the damping constant.
-damping = 0.3;
+damping = 0;
 cfn = @(n) constfn(n, damping);
 
 prob = 0.5;
-strength = 1;
+strength = 0.1;
 
-mat = MakeNetworkER(nvars, prob, true);
+mat = MakeNetworkSymmER(nvars, prob, true);
 K = MakeNetworkTriDiag(nvars+2, false);
 K(2:nvars+1, 2:nvars+1) = mat;
 K = strength * K;
 
 forcingFunc = zeros([nvars, length(tSpan)]);
-forcingFunc(1, 200:250) = 50;
-forcingFunc(5, 300:350) = 50;
 
 numTrials = 1;
 data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
 noisyData = noisefn(data);
 
 
-%% Use TISEAN to find optimal embedding dimension
+%% Use mdembedd to find optimal time lag and embedding dimension
 
-tau1 = mdDelay(data.', 'maxLag', 50, 'plottype', 'all')
-tau2 = mdDelay(data.', 'maxLag', 50, 'plottype', 'mean')
-[fnnPercent, embeddingDimension] = mdFnn(data(1, :).', round(tau1))
+tau = mdDelay(data.', 'maxLag', 50, 'plottype', 'mean')
+fnnPercent = mdFnn(data(1, :).', round(tau), 'maxEmb', 10, 'doPlot', 1);
+E = find(fnnPercent < 5, 1, 'first')

@@ -97,7 +97,7 @@ set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 colormap pink
 
-CCMHar = [[1, 3, 2, 94]; [99, 1, 0, 0]; [93, 0, 6, 1]; [46, 1, 1, 52]];
+CCMHar = [[13, 7, 1, 79]; [23, 49, 1, 27]; [18, 2, 48, 32]; [7, 1, 0, 92]];
 figure(7)
 imagesc(CCMHar)
 set(gca, 'XTick', [])

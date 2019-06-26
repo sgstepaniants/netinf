@@ -6,7 +6,7 @@ source('ccm_helper.R')
 source('CCMBaseExperiment.R')
 source('AnalysisFunctions/ConfusionMatrix.R')
 
-exp_name <- "EXPPaper1"
+exp_name <- "EXPConfusionMatrix_Size2"
 exp_path <- sprintf("../HarmonicExperiments/%s", exp_name)
 
 print(exp_path)
@@ -16,7 +16,7 @@ if (!dir.exists(exp_path)) {
   stop()
 }
 
-result_path <- sprintf("%s/CCMResultsEmbedDimTimeLag", exp_path)
+result_path <- sprintf("%s/CCMResults", exp_path)
 if (!dir.exists(result_path)) {
   dir.create(result_path)
 } else {
@@ -36,8 +36,8 @@ num_mats <- dim(data_log)[4]
 true_mats <- readMat(sprintf("%s/trueMats.mat", exp_path))[[1]]
 
 # Perform CCM analysis on sample data
-Es <- 10 #seq(1, 15, 1)
-taus <- 4 #seq(1, 15, 1)
+Es <- seq(2, 15, 2)
+taus <- c(1, 5, 10, 15)
 num_Es <- length(Es)
 num_taus <- length(taus)
 num_libs <- 10
@@ -60,7 +60,7 @@ results <-
       result <- CCMBaseExperiment(data_log, true_mats, E, num_libs, tau, num_trials, num_samples)
     }
 
-graph_logs <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_mats, num_Es, num_taus))
+graph_log <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_mats, num_Es, num_taus))
 pred_mats <- array(NaN, c(nvars, nvars, num_mats, num_Es, num_taus))
 tpr_log <- array(NaN, c(num_Es, num_taus, num_mats))
 fpr_log <- array(NaN, c(num_Es, num_taus, num_mats))
@@ -72,16 +72,18 @@ for (ind in 1:(num_Es*num_taus)) {
   j <- idx[2]
   
   pred_mats[,,, i, j] <- result$pred_mats
-  graph_logs[,,,,, i, j] <- result$graphs
+  graph_log[,,,,, i, j] <- result$graphs
+  table_results <- result$table_results
   tpr_log[i, j,] <- table_results$tpr
   fpr_log[i, j,] <- table_results$fpr
   acc_log[i, j,] <- table_results$acc
 }
 
+ave_accs <- apply(acc_log, c(1, 2), mean)
 
 # Compute the confusion matrix
-#confusion_mat <- confusion_matrix(true_mats, pred_mats)
-#print(confusion_mat)
+confusion_mat <- confusion_matrix(true_mats, pred_mats[,,, 6, 3])
+print(confusion_mat)
 
 # Save experiment result files.
 saveRDS(pred_mats, sprintf("%s/pred_mats.rds", result_path))
@@ -101,15 +103,15 @@ writeMat(sprintf("%s/graphLog.m", result_path), A = graph_log)
 
 
 # Plot directional causality rho graphs
-ave_rho_graphs <- apply(graph_logs, c(1, 2, 3, 5, 6, 7), mean)
+ave_rho_graphs <- apply(graph_log, c(1, 2, 3, 5, 6, 7), mean)
 
 rho_graphs_none <- apply(ave_rho_graphs[,,,1:100,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 rho_graphs_1causes2 <- apply(ave_rho_graphs[,,,101:200,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 rho_graphs_2causes1 <- apply(ave_rho_graphs[,,,201:300,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 rho_graphs_both <- apply(ave_rho_graphs[,,,301:400,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 
-ind_E <- 2
-ind_tau <- 2
+ind_E <- 1
+ind_tau <- 1
 delta <- floor(250/(num_libs + 1))
 lib_sizes <- delta * 1:num_libs
 

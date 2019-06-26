@@ -44,10 +44,10 @@ rhoThresh = 1;
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../KuramotoExperiments/%s', expName);
 if exist(expPath, 'dir') == 7
-    %m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
-    %if upper(m) == 'N'
-    %    return
-    %end
+    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
+    if upper(m) == 'N'
+        return
+    end
     rmdir(expPath, 's')
 end
 mkdir(expPath)
@@ -58,10 +58,10 @@ save(sprintf('%s/params.mat', expPath));
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
 if exist(resultPath, 'dir') == 7
-    %m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    %if upper(m) == 'N'
-    %   return
-    %end
+    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+    if upper(m) == 'N'
+       return
+    end
     rmdir(resultPath, 's')
 end
 mkdir(resultPath)
@@ -72,8 +72,9 @@ mkdir(resultPath)
 % Run PCI to infer network connections.
 predMats = cell(numEndtimes, numStrengths, numMats);
 tprLog = nan(numEndtimes, numStrengths, numMats);
-fprLog = nan(numEndtimes, numStrengths, numMats);
-accLog = nan(numEndtimes, numStrengths, numMats);
+fprLog = nan(numEndtimes * numStrengths * numMats);
+accLog = nan(1, numEndtimes * numStrengths * numMats);
+numRerun = zeros(1, numEndtimes * numStrengths * numMats);
 
 % Number of parallel processes
 M = 12;
@@ -110,21 +111,47 @@ for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtime
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
-        [est, tableResults] = GrangerBaseExperiment(noisyData, ...
-                mat, preprocfn, dataObsIdx, rhoThresh);
+        %[est, tableResults] = GrangerBaseExperiment(noisyData, ...
+        %        mat, preprocfn, dataObsIdx, rhoThresh);
+        est = zeros(nvars);
         if isnan(est)
+            numRerun(idx) = numRerun(idx) + 1;
             continue
         end
 
         parSave.parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, predMats, est,...
+        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), idx, predMats, est,...
             tprLog, tableResults.tpr, fprLog, tableResults.fpr, accLog, tableResults.acc);
         break
     end
 end
 
 
+predMats = reshape(predMats, numEndtimes, numStrengths, numMats);
+tprLog = reshape(tprLog, [numEndtimes, numStrengths, numMats]);
+fprLog = reshape(fprLog, [numEndtimes, numStrengths, numMats]);
+accLog = reshape(accLog, [numEndtimes, numStrengths, numMats]);
+numRerun = sum(reshape(numRerun, [numEndtimes, numStrengths, numMats]), 3);
+
+% Save experiment results
+save(sprintf('%s/results.mat', resultPath), predMats, tprLog, fprLog, accLog, numRerun)
+
+
 %% Plot Results
+
+% Show number of simulations that were skipped.
+figure(1)
+imagesc(numRerun)
+set(gca,'YDir','normal')
+colormap jet
+colorbar
+title('Number of Simulations Rerun by Our Analysis')
+xlabel('Connection Strength')
+ylabel('Endtime')
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', endtimes)
+set(gca,'TickLength', [0 0])
+
 
 % Show average accuracies for each number of perturbations and
 % observations.

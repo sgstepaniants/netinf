@@ -7,9 +7,9 @@ expNum = 'ConfusionMatrix_Size2';
 
 % Make directory to hold data files if one does not already exist
 expName = sprintf('EXP%s', expNum);
-dataPath = sprintf('../HarmonicExperiments/%s', expName);
-if exist(dataPath, 'dir') ~= 7
-    mkdir(dataPath)
+expPath = sprintf('../HarmonicExperiments/%s', expName);
+if exist(expPath, 'dir') ~= 7
+    mkdir(expPath)
 else
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', dataPath),'s');
     if upper(m) == 'N'
@@ -18,7 +18,7 @@ else
 end
 
 % Make directory to hold result files if one does not already exist
-resultPath = sprintf('%s/GCResults', dataPath);
+resultPath = sprintf('%s/GCResults', expPath);
 if exist(resultPath, 'dir') ~= 7
     mkdir(resultPath)
 else
@@ -60,14 +60,14 @@ forcingFunc = zeros([nvars, nobs]);
 bc = 'fixed';
 
 % Number of connectivity matrices to generate.
-s = 10;
+s = 100;
 numMats = 4 * s;
 
 % Number of simulation trials.
-numTrials = 10;
+numTrials = 100;
 
 % Save experiment parameters.
-save(sprintf('%s/dataParams.mat', dataPath));
+save(sprintf('%s/params.mat', expPath));
 
 % Create 4 connectivity matrices for two oscillators.
 trueMats = nan(nvars, nvars, numMats);
@@ -98,9 +98,9 @@ for j = 1 : numMats
 end
 
 % Save experiment simulated data and connectivity matrices.
-save(sprintf('%s/dataLog.mat', dataPath), 'dataLog');
-save(sprintf('%s/trueMats.mat', dataPath), 'trueMats');
-save(sprintf('%s/Ks.mat', dataPath), 'Ks');
+save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
+save(sprintf('%s/trueMats.mat', expPath), 'trueMats');
+save(sprintf('%s/Ks.mat', expPath), 'Ks');
 
 
 %% Run Granger Causality Experiments

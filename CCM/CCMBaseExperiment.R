@@ -27,8 +27,8 @@ CCMBaseExperiment <- function(data, mats, E, num_libs, tau=1, num_trials=dim(dat
   table_results_acc <- numeric(length=num_mats)
 
   # est holds CCM's estimate of the networks
-  est <- array(0, c(nvars, nvars, num_mats))
-  ccm_rho_graphs <- array(0, c(nvars, nvars, num_libs, num_trials, num_mats))
+  est <- array(NaN, c(nvars, nvars, num_mats))
+  ccm_rho_graphs <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_mats))
 
   count <- 1 # number of times we have run network inference method (so know how often to save work)
 
@@ -66,8 +66,10 @@ CCMBaseExperiment <- function(data, mats, E, num_libs, tau=1, num_trials=dim(dat
     ccm_rho_graphs[,,,, i] <- graphs
 
     # Compute the adjacency matrix predicted by averaging the CCM trials
-    voted_graphs <- apply(graphs, c(1, 2, 3), mean)
-    est[,, i] <- apply(voted_graphs, c(1, 2), mean) > 0.5
+    voted_graphs <- apply(graphs, c(1, 2, 3), function(x) mean(na.omit(x)))
+    predMat <- apply(voted_graphs, c(1, 2), function(x) mean(na.omit(x))) > 0.5
+    diag(predMat) <- 0
+    est[,, i] <- predMat
 
     # Save results
     table_results_TPR[i] <- sum((est[,, i] + truth == 2) * !diag(nvars)) / num_positives

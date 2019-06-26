@@ -1,18 +1,21 @@
 clear all; close all; clc;
 run '../mvgc_v1.0/startup.m'
-addpath('../DataScripts/SimulateData/')
-addpath('../DataScripts/SimulateData/InitFunctions/')
+addpath('../DataScripts')
+addpath('../DataScripts/SimulateData')
+addpath('../DataScripts/SimulateData/InitFunctions')
 
-expNum = 'PertVarySizeForcingStrengths';
+expNum = 'VaryPertsObs';
 
 % Network size
 nvars = 10;
 
-% Connection strength
-strength = 0.1;
+% Connection strengths
+numPertsList = 1 : nvars;
+numPertsLength = length(numPertsList);
 
-% Forcing magnitude
-force = 50;
+% Forcing magnitudes
+numObsList = 1 : nvars;
+numObsLength = length(numObsList);
 
 % Initial conditions and masses
 pfn = @(n) randfn(n, -0.5, 0.5);
@@ -26,7 +29,6 @@ cfn = @(n) constfn(n, damping);
 % Specify noise and prepocessing for data.
 measParam = 0.1;
 noisefn = @(data) WhiteGaussianNoise(data, measParam);
-preprocfn = @(data) data;
 
 % Delta t
 deltat = 0.1;
@@ -34,11 +36,20 @@ deltat = 0.1;
 % Specify boundary conditions.
 bc = 'fixed';
 
+% Preprocessing function for data.
+preprocfn = @(data) data;
+
 % Probabilities of network connections.
 prob = 0.5;
 
+% Coupling strength of network connections.
+strength = 0.1;
+
+% Magnitude of forcing in perturbations.
+force = 20;
+
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 2;
 
 % Number of experimental trials
 numTrials = 1;
@@ -51,102 +62,178 @@ corrThresh = 0.2;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../HarmonicExperiments/%s', expName);
-if exist(expPath, 'dir') ~= 7
-    mkdir(expPath)
-else
+if exist(expPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
     if upper(m) == 'N'
-       return
+        return
     end
+    rmdir(expPath, 's')
 end
+mkdir(expPath)
 
 % Save experiment parameters.
 save(sprintf('%s/params.mat', expPath));
 
-
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/PertResults', expPath);
-if exist(resultPath, 'dir') ~= 7
-    mkdir(resultPath)
-else
+if exist(resultPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
     if upper(m) == 'N'
        return
     end
+    rmdir(resultPath, 's')
 end
+mkdir(resultPath)
 
 
-%% Evaluate Algorithm on Data for Varying Numbers of Perturbations and Observations
-load(sprintf('%s/params.mat', dataPath))
+%% Generate Data and Run Granger Causality Experiments
 
-predMats = nan(nvars, nvars, numTrials, numMats, nvars, nvars);
-tprLog = nan(nvars, nvars, numTrials, numMats);
-fprLog = nan(nvars, nvars, numTrials, numMats);
-accuracyLog = nan(nvars, nvars, numTrials, numMats);
+% Run PCI to infer network connections.
+predMats = cell(numPertsLength, numObsLength, numMats);
+tprLog = nan(numPertsLength, numObsLength, numMats);
+fprLog = nan(numPertsLength, numObsLength, numMats);
+accLog = nan(numPertsLength, numObsLength, numMats);
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog');
 
-fprintf('Run Algorithm:\n')
-for numObs = nvars:-1:1
-    numObs
-    for numPerts = nvars:-1:1
-        numPerts
-        
-        try
-            load(sprintf('%s/numobs%d/numperts%d/dataLog.mat', dataPath, numObs, numPerts), 'dataLog');
-            load(sprintf('%s/numobs%d/numperts%d/trueMats.mat', dataPath, numObs, numPerts), 'trueMats');
-            load(sprintf('%s/numobs%d/numperts%d/dataObsIdx.mat', dataPath, numObs, numPerts), 'dataObsIdx');
-            load(sprintf('%s/numobs%d/numperts%d/dataPertIdx.mat', dataPath, numObs, numPerts), 'dataPertIdx');
-            load(sprintf('%s/numobs%d/numperts%d/dataPertTimes.mat', dataPath, numObs, numPerts), 'dataPertTimes');
-            load(sprintf('%s/numobs%d/numperts%d/dataPertLength.mat', dataPath, numObs, numPerts), 'dataPertLength');
-        catch
+% Number of parallel processes
+M = 12;
+c = progress(numPertsLength * numObsLength * numMats);
+for idx = 1 : numPertsLength * numObsLength * numMats %parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
+    [j, k, m] = ind2sub([numPertsLength, numObsLength, numMats], idx);
+    fprintf('perts: %d, obs: %d\n', j, k)
+    
+    numPerts = numPertsList(j);
+    numObs = numObsList(k);
+    
+    if numPerts > numObs
+        continue
+    end
+    
+    currExpPath = sprintf('%s/numPerts%d/numObs%d/mat%d', expPath, j, k, m);
+    if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
+        mkdir(currExpPath)
+    else
+        continue
+    end
+    
+    % Count the number of iterations done by the parfor loop
+    c.count();
+    
+    % Choose which nodes to observe.
+    indsToObserve = randsample(1 : nvars, numObs);
+    % Choose which nodes to perturb from the ones you observed.
+    pertIdx = randsample(indsToObserve, numPerts);
+    
+    % Max obsIdx a logical vector.
+    obsIdx = false(1, nvars);
+    obsIdx(indsToObserve) = true;
+    
+    while true
+        % Create adjacency matrices.
+        mat = MakeNetworkER(nvars, prob, true);
+        K = MakeNetworkTriDiag(nvars+2, false);
+        K(2:nvars+1, 2:nvars+1) = mat;
+        K = strength * K;
+
+        % If this adjacency matrix is bad, make a new simulation.
+        [disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping, force);
+        if waitTime > 500 || ~isempty(disconnectedNodes) || any(amplitudes > -0.00001)
             continue
         end
         
-        % Run Perturbation Inference to infer network connections.
-        [predMats(:, :, :, :, numObs, numPerts), tableResults] = ...
-            PerturbationBaseExperiment(dataLog, trueMats, numTrials, preprocfn, ...
-                dataObsIdx, dataPertIdx, dataPertTimes, dataPertLength, ...
-                method, corrThresh, pad, 0, freq, outputPath);
+        endtime = waitTime * (numPerts + 1);
+        nobs = round(endtime / deltat);
+        tSpan = linspace(0, endtime, nobs);
+
+        % Build up forcing function.
+        times = round(linspace(0, nobs, numPerts+2));
+        pertTimes = times(2:end-1);
+        pertLength = round(waitTime / (4 * deltat));
+
+        forcingFunc = zeros([nvars, nobs]);
+        for p=1:numPerts
+            forcingFunc(pertIdx(p), pertTimes(p):pertTimes(p)+pertLength) = force;
+        end
+
+        % Generate data with forced perturbations.
+        data = GenerateHarmonicData(nvars, tSpan, numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
+        noisyData = noisefn(data);
         
-        tprLog(numObs, numPerts, :, :) = tableResults.tpr;
-        fprLog(numObs, numPerts, :, :) = tableResults.fpr;
-        accuracyLog(numObs, numPerts, :, :) = tableResults.acc;
+        leftPad = 100;
+        rightPad = pertLength;
+        [est, ~, ~, ~, ~, tableResults] = ...
+            PerturbationBaseExperiment(noisyData, mat, numTrials, preprocfn, ...
+                obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
         
-        save(sprintf('%s/predMats.mat', outputPath), 'predMats');
-        save(sprintf('%s/tprLog.mat', outputPath), 'tprLog');
-        save(sprintf('%s/fprLog.mat', outputPath), 'fprLog');
-        save(sprintf('%s/accuracyLog.mat', outputPath), 'accuracyLog');
+        parSave.parPertDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, pertIdx, obsIdx, pertLength, pertTimes, mat, K);
+        results = load(sprintf('%s/results.mat', resultPath));
+        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, results, est,...
+            tableResults.tpr, tableResults.fpr, tableResults.acc);
+        break
     end
 end
 
+results = load(sprintf('%s/results.mat', resultPath));
+predMats = results.predMats;
+tprLog = results.tprLog;
+fprLog = results.fprLog;
+accLog = results.accLog;
+
+
+%% Plot Results
+
 % Show average accuracies for each number of perturbations and
 % observations.
-aveAccuracies = nanmean(nanmean(accuracyLog, 4), 3);
-figure(1)
+aveAccuracies = nanmean(accLog, 3);
+figure(2)
 clims = [0, 1];
-imagesc(aveAccuracies, clims)
+imagesc(reshape(aveAccuracies, [numPertsLength, numObsLength]), clims)
+set(gca,'YDir','normal')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
+colormap jet
 colorbar
 title('Average Accuracy over Simulations')
-xlabel('Number of Perturbed Nodes')
-ylabel('Number of Observed Nodes')
+xlabel('Number of Observations')
+ylabel('Number of Perturbations')
+set(gca, 'XTick', numObsList)
+set(gca, 'YTick', numPertsList)
+%set(gca, 'TickLength', [0 0])
+
 
 % Show average TPR for each number of perturbations and
 % observations.
-aveTPR = nanmean(nanmean(tprLog, 4), 3);
-figure(2)
+aveTPR = nanmean(tprLog, 3);
+figure(3)
 clims = [0, 1];
-imagesc(aveTPR, clims)
+imagesc(reshape(aveTPR, [numPertsLength, numObsLength]), clims)
+set(gca,'YDir','normal')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
+colormap jet
 colorbar
 title('Average TPR over Simulations')
-xlabel('Number of Perturbed Nodes')
-ylabel('Number of Observed Nodes')
+xlabel('Number of Observations')
+ylabel('Number of Perturbations')
+set(gca, 'XTick', numObsList)
+set(gca, 'YTick', numPertsList)
+%set(gca, 'TickLength', [0 0])
+
 
 % Show average FPR for each number of perturbations and
 % observations.
-aveFPR = nanmean(nanmean(fprLog, 4), 3);
-figure(3)
+aveFPR = nanmean(fprLog, 3);
+figure(4)
 clims = [0, 1];
-imagesc(aveFPR, clims)
+imagesc(reshape(aveFPR, [numPertsLength, numObsLength]), clims)
+set(gca,'YDir','normal')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
+colormap jet
 colorbar
 title('Average FPR over Simulations')
-xlabel('Number of Perturbed Nodes')
-ylabel('Number of Observed Nodes')
+xlabel('Number of Observations')
+ylabel('Number of Perturbations')
+set(gca, 'XTick', numObsList)
+set(gca, 'YTick', numPertsList)
+%set(gca, 'TickLength', [0 0])

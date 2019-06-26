@@ -8,7 +8,7 @@ nvars = 5;
 expNum = sprintf('VaryTimeStrengths_Size%d', nvars);
 
 % Simulation endtimes
-endtimes = 5 : 25;
+endtimes = 5 : 5 : 25;
 numEndtimes = length(endtimes);
 
 % Connection strengths
@@ -74,11 +74,12 @@ predMats = cell(numEndtimes, numStrengths, numMats);
 tprLog = nan(numEndtimes, numStrengths, numMats);
 fprLog = nan(numEndtimes, numStrengths, numMats);
 accLog = nan(numEndtimes, numStrengths, numMats);
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog');
 
 % Number of parallel processes
 M = 12;
 c = progress(numEndtimes * numStrengths * numMats);
-for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
+parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
     [j, k, m] = ind2sub([numEndtimes, numStrengths, numMats], idx);
     fprintf('endtime: %d, strength: %d\n', j, k)
 
@@ -117,11 +118,18 @@ for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtime
         end
 
         parSave.parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, predMats, est,...
-            tprLog, tableResults.tpr, fprLog, tableResults.fpr, accLog, tableResults.acc);
+        presults = load(sprintf('%s/results.mat', resultPath));
+        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, results, est,...
+            tableResults.tpr, tableResults.fpr, tableResults.acc);
         break
     end
 end
+
+results = load(sprintf('%s/results.mat', resultPath));
+predMats = results.predMats;
+tprLog = results.tprLog;
+fprLog = results.fprLog;
+accLog = results.accLog;
 
 
 %% Plot Results

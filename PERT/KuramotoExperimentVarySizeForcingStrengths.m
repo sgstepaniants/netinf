@@ -126,8 +126,8 @@ parfor (idx = 1 : numSizes * numForces * numStrengths * numMats, M)
     pertLength = round(waitTime / (10 * deltat));
 
     forcingFunc = zeros([nvars, nobs]);
-    for k=1:numPerts
-        forcingFunc(pertIdx(k), pertTimes(k):pertTimes(k)+pertLength) = force;
+    for p=1:numPerts
+        forcingFunc(pertIdx(p), pertTimes(p):pertTimes(p)+pertLength) = force;
     end
 
     % Generate data with forced perturbations.

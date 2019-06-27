@@ -167,7 +167,7 @@ save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
 
 %% Plot Results
 
-forceInd = 1;
+forceInd = 5;
 
 % Show number of simulations that were skipped.
 figure(1)

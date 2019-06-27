@@ -46,10 +46,10 @@ prob = 0.5;
 strength = 0.1;
 
 % Magnitude of forcing in perturbations.
-force = 20;
+force = 50;
 
 % Number of matrices to average results over.
-numMats = 2;
+numMats = 1;
 
 % Number of experimental trials
 numTrials = 1;
@@ -89,11 +89,11 @@ mkdir(resultPath)
 %% Generate Data and Run Granger Causality Experiments
 
 % Run PCI to infer network connections.
-predMats = cell(numPertsLength, numObsLength, numMats);
-tprLog = nan(numPertsLength, numObsLength, numMats);
-fprLog = nan(numPertsLength, numObsLength, numMats);
-accLog = nan(numPertsLength, numObsLength, numMats);
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog');
+predMats = cell(1, numPertsLength * numObsLength * numMats);
+tprLog = nan(1, numPertsLength * numObsLength * numMats);
+fprLog = nan(1, numPertsLength * numObsLength * numMats);
+accLog = nan(1, numPertsLength * numObsLength * numMats);
+numRerun = zeros(1, numPertsLength * numObsLength * numMats);
 
 % Number of parallel processes
 M = 12;
@@ -101,6 +101,9 @@ c = progress(numPertsLength * numObsLength * numMats);
 for idx = 1 : numPertsLength * numObsLength * numMats %parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
     [j, k, m] = ind2sub([numPertsLength, numObsLength, numMats], idx);
     fprintf('perts: %d, obs: %d\n', j, k)
+    
+    % Count the number of iterations done by the parfor loop
+    c.count();
     
     numPerts = numPertsList(j);
     numObs = numObsList(k);
@@ -115,9 +118,6 @@ for idx = 1 : numPertsLength * numObsLength * numMats %parfor (idx = 1 : numPert
     else
         continue
     end
-    
-    % Count the number of iterations done by the parfor loop
-    c.count();
     
     % Choose which nodes to observe.
     indsToObserve = randsample(1 : nvars, numObs);
@@ -138,6 +138,7 @@ for idx = 1 : numPertsLength * numObsLength * numMats %parfor (idx = 1 : numPert
         % If this adjacency matrix is bad, make a new simulation.
         [disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping, force);
         if waitTime > 500 || ~isempty(disconnectedNodes) || any(amplitudes > -0.00001)
+            numRerun(idx) = numRerun(idx) + 1;
             continue
         end
         
@@ -166,21 +167,40 @@ for idx = 1 : numPertsLength * numObsLength * numMats %parfor (idx = 1 : numPert
                 obsIdx, pertIdx, pertTimes, leftPad, rightPad, method, corrThresh);
         
         parSave.parPertDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, pertIdx, obsIdx, pertLength, pertTimes, mat, K);
-        results = load(sprintf('%s/results.mat', resultPath));
-        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, results, est,...
-            tableResults.tpr, tableResults.fpr, tableResults.acc);
+        
+        predMats{idx} = est;
+        tprLog(idx) = tableResults.tpr;
+        fprLog(idx) = tableResults.fpr;
+        accLog(idx) = tableResults.acc;
         break
     end
 end
 
-results = load(sprintf('%s/results.mat', resultPath));
-predMats = results.predMats;
-tprLog = results.tprLog;
-fprLog = results.fprLog;
-accLog = results.accLog;
+predMats = reshape(predMats, numPertsLength, numObsLength, numMats);
+tprLog = reshape(tprLog, [numPertsLength, numObsLength, numMats]);
+fprLog = reshape(fprLog, [numPertsLength, numObsLength, numMats]);
+accLog = reshape(accLog, [numPertsLength, numObsLength, numMats]);
+numRerun = sum(reshape(numRerun, [numPertsLength, numObsLength, numMats]), 3);
+
+% Save experiment results
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog', 'numRerun');
 
 
 %% Plot Results
+
+% Show number of simulations that were skipped.
+figure(1)
+imagesc(reshape(numRerun, [numPertsLength, numObsLength]))
+set(gca,'YDir','normal')
+colormap jet
+colorbar
+title('Number over Simulations Rerun by Analysis')
+xlabel('Number of Observations')
+ylabel('Number of Perturbations')
+set(gca, 'XTick', numObsList)
+set(gca, 'YTick', numPertsList)
+%set(gca, 'TickLength', [0 0])
+
 
 % Show average accuracies for each number of perturbations and
 % observations.

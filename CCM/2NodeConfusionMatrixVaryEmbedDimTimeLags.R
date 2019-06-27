@@ -82,7 +82,7 @@ for (ind in 1:(num_Es*num_taus)) {
 ave_accs <- apply(acc_log, c(1, 2), mean)
 
 # Compute the confusion matrix
-confusion_mat <- confusion_matrix(true_mats, pred_mats[,,, 6, 3])
+confusion_mat <- confusion_matrix(true_mats, pred_mats[,,, 1, 4])
 print(confusion_mat)
 
 # Save experiment result files.
@@ -105,13 +105,14 @@ writeMat(sprintf("%s/graphLog.m", result_path), A = graph_log)
 # Plot directional causality rho graphs
 ave_rho_graphs <- apply(graph_log, c(1, 2, 3, 5, 6, 7), mean)
 
-rho_graphs_none <- apply(ave_rho_graphs[,,,1:100,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
-rho_graphs_1causes2 <- apply(ave_rho_graphs[,,,101:200,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
-rho_graphs_2causes1 <- apply(ave_rho_graphs[,,,201:300,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
-rho_graphs_both <- apply(ave_rho_graphs[,,,301:400,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
+maxInd <- 100;
+rho_graphs_none <- apply(ave_rho_graphs[,,,1:maxInd,,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
+rho_graphs_1causes2 <- apply(ave_rho_graphs[,,,101:(maxInd+100),,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
+rho_graphs_2causes1 <- apply(ave_rho_graphs[,,,201:(maxInd+200),,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
+rho_graphs_both <- apply(ave_rho_graphs[,,,301:(maxInd+300),,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 
 ind_E <- 1
-ind_tau <- 1
+ind_tau <- 4
 delta <- floor(250/(num_libs + 1))
 lib_sizes <- delta * 1:num_libs
 

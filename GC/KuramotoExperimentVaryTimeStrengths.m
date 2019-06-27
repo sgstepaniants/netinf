@@ -82,6 +82,9 @@ c = progress(numEndtimes * numStrengths * numMats);
 parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
     [j, k, m] = ind2sub([numEndtimes, numStrengths, numMats], idx);
     fprintf('endtime: %d, strength: %d\n', j, k)
+    
+    % Count the number of iterations done by the parfor loop
+    c.count();
 
     currExpPath = sprintf('%s/endtime%d/strength%d/mat%d', expPath, j, k, m);
     if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
@@ -89,9 +92,6 @@ parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
     else
         continue
     end
-
-    % Count the number of iterations done by the parfor loop
-    c.count();
 
     endtime = endtimes(j);
     strength = strengths(k);
@@ -118,7 +118,7 @@ parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
         end
 
         parSave.parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        presults = load(sprintf('%s/results.mat', resultPath));
+        results = load(sprintf('%s/results.mat', resultPath));
         parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, results, est,...
             tableResults.tpr, tableResults.fpr, tableResults.acc);
         break

@@ -85,7 +85,6 @@ predMats = cell(1, numSizes * numForces * numStrengths * numMats);
 tprLog = nan(1, numSizes * numForces * numStrengths * numMats);
 fprLog = nan(1, numSizes * numForces * numStrengths * numMats);
 accLog = nan(1, numSizes * numForces * numStrengths * numMats);
-numRerun = zeros(1, numSizes * numForces * numStrengths * numMats);
 
 parsave = @(fname, noisyData, pertLength, pertTimes, mat)...
             save(fname, 'noisyData', 'pertLength', 'pertTimes', 'mat');
@@ -155,33 +154,17 @@ predMats = reshape(predMats, numSizes, numForces, numStrengths, numMats);
 tprLog = reshape(tprLog, [numSizes, numForces, numStrengths, numMats]);
 fprLog = reshape(fprLog, [numSizes, numForces, numStrengths, numMats]);
 accLog = reshape(accLog, [numSizes, numForces, numStrengths, numMats]);
-numRerun = sum(reshape(numRerun, [numSizes, numForces, numStrengths, numMats]), 4);
 
 % Save experiment results
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');
 save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
 save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
 save(sprintf('%s/accLog.mat', resultPath), 'accLog');
-save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
 
 
 %% Plot Results
 
 forceInd = 5;
-
-% Show number of simulations that were skipped.
-figure(1)
-imagesc(reshape(numRerun(:, forceInd, :), [numSizes, numStrengths]))
-set(gca,'YDir','normal')
-colormap jet
-colorbar
-title('Number of Simulations Rerun by Our Analysis')
-xlabel('Connection Strength')
-ylabel('Network Size')
-set(gca, 'XTick', strengths)
-set(gca, 'YTick', networkSizes)
-set(gca,'TickLength', [0 0])
-
 
 % Show average accuracies for each number of perturbations and
 % observations.

@@ -4,14 +4,18 @@ addpath('../DataScripts')
 addpath('../DataScripts/SimulateData')
 addpath('../DataScripts/SimulateData/InitFunctions')
 
-expNum = 'VaryNoise';
+expNum = 'VaryNoiseForcing';
 
 % Network size
 nvars = 10;
 
-% Specify noise magnitudes to try
-noiseMagnitudes = 0 : 0.2 : 2;
+% Noise magnitudes
+noiseMagnitudes = 0 : 2 : 20;
 noiseMagnitudesLength = length(noiseMagnitudes);
+
+% Forcing magnitudes
+forces = 10 : 10 : 100;
+numForces = length(forces);
 
 % Initial conditions and masses
 pfn = @(n) randfn(n, -0.5, 0.5);
@@ -41,7 +45,7 @@ strength = 0.1;
 force = 50;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 1;
 
 % Number of experimental trials
 numTrials = 1;
@@ -81,23 +85,23 @@ mkdir(resultPath)
 %% Generate Data and Run Granger Causality Experiments
 
 % Run PCI to infer network connections.
-predMats = cell(1, noiseMagnitudesLength * numMats);
-tprLog = nan(1, noiseMagnitudesLength * numMats);
-fprLog = nan(1, noiseMagnitudesLength * numMats);
-accLog = nan(1, noiseMagnitudesLength * numMats);
-numRerun = zeros(1, noiseMagnitudesLength * numMats);
+predMats = cell(1, noiseMagnitudesLength * numForces * numMats);
+tprLog = nan(1, noiseMagnitudesLength * numForces * numMats);
+fprLog = nan(1, noiseMagnitudesLength * numForces * numMats);
+accLog = nan(1, noiseMagnitudesLength * numForces * numMats);
+numRerun = nan(1, noiseMagnitudesLength * numForces * numMats);
 
 parsave = @(fname, noisyData, pertLength, pertTimes, mat, K)...
             save(fname, 'noisyData', 'pertLength', 'pertTimes', 'mat', 'K');
 
 % Number of parallel processes
 M = 25;
-c = progress(noiseMagnitudesLength * numMats);
-parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
-    [j, m] = ind2sub([noiseMagnitudesLength, numMats], idx);
-    fprintf('noise magnitude: %d\n', j)
+c = progress(noiseMagnitudesLength * numForces * numMats);
+parfor (idx = 1 : noiseMagnitudesLength * numForces * numMats, M)
+    [j, k, m] = ind2sub([noiseMagnitudesLength, numForces, numMats], idx);
+    fprintf('noise magnitude: %d, force: %d\n', j, k)
     
-    currExpPath = sprintf('%s/noise%d/mat%d', expPath, j, m);
+    currExpPath = sprintf('%s/noise%d/force%d/mat%d', expPath, j, k, m);
     if exist(currExpPath, 'dir') ~= 7
         mkdir(currExpPath)
     end
@@ -106,6 +110,7 @@ parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
     c.count();
 
     noiseMagnitude = noiseMagnitudes(j);
+    force = forces(k);
 
     while true
         % Create adjacency matrices.
@@ -161,11 +166,11 @@ parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
 end
 
 
-predMats = reshape(predMats, noiseMagnitudesLength, numMats);
-tprLog = reshape(tprLog, [noiseMagnitudesLength, numMats]);
-fprLog = reshape(fprLog, [noiseMagnitudesLength, numMats]);
-accLog = reshape(accLog, [noiseMagnitudesLength, numMats]);
-numRerun = sum(reshape(numRerun, [noiseMagnitudesLength, numMats]), 4);
+predMats = reshape(predMats, noiseMagnitudesLength, numForces, numMats);
+tprLog = reshape(tprLog, [noiseMagnitudesLength, numForces, numMats]);
+fprLog = reshape(fprLog, [noiseMagnitudesLength, numForces, numMats]);
+accLog = reshape(accLog, [noiseMagnitudesLength, numForces, numMats]);
+numRerun = sum(reshape(numRerun, [noiseMagnitudesLength, numForces, numMats]), 3);
 
 % Save experiment results
 save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog', 'numRerun');
@@ -173,35 +178,46 @@ save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'acc
 
 %% Plot Results
 
-% Show number of simulations that were skipped.
+% Show average accuracies
+aveAccuracies = nanmean(accLog, 3);
 figure(1)
-plot(noiseMagnitudes, numRerun)
-xlabel('Magnitude of Noise')
-ylabel('Number of Simulations Rerun')
+imagesc(reshape(aveAccuracies, [noiseMagnitudesLength, numForces]))
+set(gca,'YDir','normal')
+colormap jet
+colorbar
+title('Average Accuracy')
+xlabel('Force')
+ylabel('Noise')
+set(gca, 'XTick', forces)
+set(gca, 'YTick', noiseMagnitudes)
+%set(gca,'TickLength', [0 0])
 
 
-% Show average accuracies for each number of perturbations and
-% observations.
-aveAccuracies = nanmean(accLog, 2);
+% Show average TPR
+aveTPR = nanmean(tprLog, 3);
 figure(2)
-plot(noiseMagnitudes, aveAccuracies)
-xlabel('Magnitude of Noise')
-ylabel('Average Accuracy over Simulations')
+imagesc(reshape(aveTPR, [noiseMagnitudesLength, numForces]))
+set(gca,'YDir','normal')
+colormap jet
+colorbar
+title('Average TPR')
+xlabel('Force')
+ylabel('Noise')
+set(gca, 'XTick', forces)
+set(gca, 'YTick', noiseMagnitudes)
+%set(gca,'TickLength', [0 0])
 
 
-% Show average TPR for each number of perturbations and
-% observations.
-aveTPR = nanmean(tprLog, 4);
+% Show average FPR
+aveFPR = nanmean(fprLog, 3);
 figure(3)
-plot(noiseMagnitudes, aveTPR)
-xlabel('Magnitude of Noise')
-ylabel('Average TPR over Simulations')
-
-
-% Show average FPR for each number of perturbations and
-% observations.
-aveFPR = nanmean(fprLog, 4);
-figure(4)
-plot(noiseMagnitudes, aveFPR)
-xlabel('Magnitude of Noise')
-ylabel('Average FPR over Simulations')
+imagesc(reshape(aveFPR, [noiseMagnitudesLength, numForces]))
+set(gca,'YDir','normal')
+colormap jet
+colorbar
+title('Average FPR')
+xlabel('Force')
+ylabel('Noise')
+set(gca, 'XTick', forces)
+set(gca, 'YTick', noiseMagnitudes)
+%set(gca,'TickLength', [0 0])

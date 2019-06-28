@@ -7,7 +7,7 @@ addpath('../DataScripts/SimulateData/InitFunctions')
 expNum = 'VaryPertsObs';
 
 % Network size
-nvars = 10;
+nvars = 3;
 
 % Connection strengths
 numPertsList = 1 : nvars;
@@ -44,7 +44,7 @@ strength = 50;
 force = 50;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 1;
 
 % Number of experimental trials
 numTrials = 1;
@@ -98,7 +98,7 @@ parsave = @(fname, noisyData, pertIdx, obsIdx, pertLength, pertTimes, mat)...
 % Number of parallel processes
 M = 12;
 c = progress(numPertsLength * numObsLength * numMats);
-parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
+for idx = 1 : numPertsLength * numObsLength * numMats %parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
     [j, k, m] = ind2sub([numPertsLength, numObsLength, numMats], idx);
     fprintf('perts: %d, obs: %d\n', j, k)
     
@@ -122,9 +122,12 @@ parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
     % Choose which nodes to observe.
     indsToObserve = randsample(1 : nvars, numObs);
     % Choose which nodes to perturb from the ones you observed.
-    pertIdx = randsample(indsToObserve, numPerts);
+    pertIdx = indsToObserve;
+    if numObs > 1
+        pertIdx = randsample(indsToObserve, numPerts);
+    end
     
-    % Max obsIdx a logical vector.
+    % Make obsIdx a logical vector.
     obsIdx = false(1, nvars);
     obsIdx(indsToObserve) = true;
     
@@ -182,54 +185,54 @@ save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'acc
 % observations.
 aveAccuracies = nanmean(accLog, 3);
 figure(2)
-clims = [0, 1];
-imagesc(reshape(aveAccuracies, [numPertsLength, numObsLength]), clims)
+pcolor(reshape(aveAccuracies, [numPertsLength, numObsLength]))
+set(gca, 'clim', [0 1]);
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average Accuracy over Simulations')
-xlabel('Number of Observations')
-ylabel('Number of Perturbations')
-set(gca, 'XTick', numObsList)
-set(gca, 'YTick', numPertsList)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average Accuracy over Simulations')
+%xlabel('Number of Observations')
+%ylabel('Number of Perturbations')
+%set(gca, 'XTick', numObsList)
+%set(gca, 'YTick', numPertsList)
+set(gca, 'TickLength', [0 0])
 
 
 % Show average TPR for each number of perturbations and
 % observations.
 aveTPR = nanmean(tprLog, 3);
 figure(3)
-clims = [0, 1];
-imagesc(reshape(aveTPR, [numPertsLength, numObsLength]), clims)
+pcolor(reshape(aveTPR, [numPertsLength, numObsLength]))
+set(gca, 'clim', [0 1]);
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average TPR over Simulations')
-xlabel('Number of Observations')
-ylabel('Number of Perturbations')
-set(gca, 'XTick', numObsList)
-set(gca, 'YTick', numPertsList)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average TPR over Simulations')
+%xlabel('Number of Observations')
+%ylabel('Number of Perturbations')
+%set(gca, 'XTick', numObsList)
+%set(gca, 'YTick', numPertsList)
+set(gca, 'TickLength', [0 0])
 
 
 % Show average FPR for each number of perturbations and
 % observations.
 aveFPR = nanmean(fprLog, 3);
 figure(4)
-clims = [0, 1];
-imagesc(reshape(aveFPR, [numPertsLength, numObsLength]), clims)
+pcolor(reshape(aveFPR, [numPertsLength, numObsLength]))
+set(gca, 'clim', [0 1]);
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average FPR over Simulations')
-xlabel('Number of Observations')
-ylabel('Number of Perturbations')
-set(gca, 'XTick', numObsList)
-set(gca, 'YTick', numPertsList)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average FPR over Simulations')
+%xlabel('Number of Observations')
+%ylabel('Number of Perturbations')
+%set(gca, 'XTick', numObsList)
+%set(gca, 'YTick', numPertsList)
+set(gca, 'TickLength', [0 0])

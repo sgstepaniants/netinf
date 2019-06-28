@@ -29,9 +29,7 @@ function [predMats, predMatsHist, AprobHist, truePertOrders, predPertOrders, tab
         pertTimes = dataPertTimes(j, :);
         
         truth = mats(:, :, j);
-        numPositives = nnz(truth(obsIdx, obsIdx) .* ~eye(numObs));
-        numNegatives = nnz(~truth(obsIdx, obsIdx) .* ~eye(numObs));
-
+        
         % For each rep, different random frequencies, initial conditions, and noise
         for trial = 1 : numTrials
             if iscell(data)
@@ -66,9 +64,12 @@ function [predMats, predMatsHist, AprobHist, truePertOrders, predPertOrders, tab
         predMats(:, :, j) = predMat;
         
         % Save results
+        numPositives = nnz(truth .* ~isnan(predMat) .* ~eye(nvars));
+        numNegatives = nnz(~truth .* ~isnan(predMat) .* ~eye(nvars));
+        
         tableResultsTPR(j) = nnz((predMat + truth == 2) .* ~eye(nvars)) / numPositives;
         tableResultsFPR(j) = nnz((predMat - truth == 1) .* ~eye(nvars)) / numNegatives;
-        tableResultsAcc(j) = nnz((predMat == truth) .* ~eye(nvars)) / (numObs^2-numObs);
+        tableResultsAcc(j) = nnz((predMat == truth) .* ~eye(nvars)) / (numPositives + numNegatives);
     end
     
     % Get the network reconstruction our algorithm produces.

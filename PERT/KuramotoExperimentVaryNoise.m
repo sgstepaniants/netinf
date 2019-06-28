@@ -4,26 +4,18 @@ addpath('../DataScripts')
 addpath('../DataScripts/SimulateData')
 addpath('../DataScripts/SimulateData/InitFunctions')
 
-expNum = 'VaryPertsObs';
+expNum = 'VaryNoise';
 
 % Network size
 nvars = 10;
 
-% Connection strengths
-numPertsList = 1 : nvars;
-numPertsLength = length(numPertsList);
-
-% Forcing magnitudes
-numObsList = 1 : nvars;
-numObsLength = length(numObsList);
+% Specify noise magnitudes to try
+noiseMagnitudes = 0 : 0.2 : 2;
+noiseMagnitudesLength = length(noiseMagnitudes);
 
 % Initial conditions
 pfn = @(n) randfn(n, 0, 2*pi);
 wfn = @(n) randfn(n, -1, 1);
-
-% Specify noise and prepocessing for data.
-measParam = 0.1;
-noisefn = @(data) WhiteGaussianNoise(data, measParam);
 
 % Delta t
 deltat = 0.01;
@@ -44,7 +36,7 @@ strength = 50;
 force = 50;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 1;
 
 % Number of experimental trials
 numTrials = 1;
@@ -87,50 +79,38 @@ mkdir(resultPath)
 %% Generate Data and Run Granger Causality Experiments
 
 % Run PCI to infer network connections.
-predMats = cell(1, numPertsLength * numObsLength * numMats);
-tprLog = nan(1, numPertsLength * numObsLength * numMats);
-fprLog = nan(1, numPertsLength * numObsLength * numMats);
-accLog = nan(1, numPertsLength * numObsLength * numMats);
+predMats = cell(1, noiseMagnitudesLength * numMats);
+tprLog = nan(1, noiseMagnitudesLength * numMats);
+fprLog = nan(1, noiseMagnitudesLength * numMats);
+accLog = nan(1, noiseMagnitudesLength * numMats);
 
 parsave = @(fname, noisyData, pertIdx, obsIdx, pertLength, pertTimes, mat)...
             save(fname, 'noisyData', 'pertIdx', 'obsIdx', 'pertLength', 'pertTimes', 'mat');
 
 % Number of parallel processes
-M = 12;
-c = progress(numPertsLength * numObsLength * numMats);
-parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
-    [j, k, m] = ind2sub([numPertsLength, numObsLength, numMats], idx);
-    fprintf('perts: %d, obs: %d\n', j, k)
+M = 25;
+c = progress(noiseMagnitudesLength * numMats);
+parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
+    [j, m] = ind2sub([noiseMagnitudesLength, numMats], idx);
+    fprintf('noise magnitude: %d\n', j)
+    
+    currExpPath = sprintf('%s/noise%d/mat%d', expPath, j, m);
+    if exist(currExpPath, 'dir') ~= 7
+        mkdir(currExpPath)
+    end
     
     % Count the number of iterations done by the parfor loop
     c.count();
-    
-    numPerts = numPertsList(j);
-    numObs = numObsList(k);
-    
-    if numPerts > numObs
-        continue
-    end
-    
-    currExpPath = sprintf('%s/numPerts%d/numObs%d/mat%d', expPath, j, k, m);
-    if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
-        mkdir(currExpPath)
-    else
-        continue
-    end
-    
-    % Choose which nodes to observe.
-    indsToObserve = randsample(1 : nvars, numObs);
-    % Choose which nodes to perturb from the ones you observed.
-    pertIdx = randsample(indsToObserve, numPerts);
-    
-    % Max obsIdx a logical vector.
-    obsIdx = false(1, nvars);
-    obsIdx(indsToObserve) = true;
-    
+
+    noiseMagnitude = noiseMagnitudes(j);
+
     while true
         % Create adjacency matrices.
         mat = MakeNetworkER(nvars, prob, true);
+        
+        % Perturb all nodes sequentially.
+        pertIdx = 1 : nvars;
+        numPerts = length(pertIdx);
         
         endtime = waitTime * (numPerts + 1);
         nobs = round(endtime / deltat);
@@ -148,8 +128,9 @@ parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
 
         % Generate data with forced perturbations.
         data = GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
-        noisyData = noisefn(data);
+        noisyData = WhiteGaussianNoise(data, noiseMagnitude);
         
+        obsIdx = true([1, nvars]);
         leftPad = 0;
         rightPad = pertLength;
         truePertOrders = TruePertOrders(mat, pertIdx, obsIdx);
@@ -167,10 +148,11 @@ parfor (idx = 1 : numPertsLength * numObsLength * numMats, M)
     end
 end
 
-predMats = reshape(predMats, numPertsLength, numObsLength, numMats);
-tprLog = reshape(tprLog, [numPertsLength, numObsLength, numMats]);
-fprLog = reshape(fprLog, [numPertsLength, numObsLength, numMats]);
-accLog = reshape(accLog, [numPertsLength, numObsLength, numMats]);
+
+predMats = reshape(predMats, noiseMagnitudesLength, numMats);
+tprLog = reshape(tprLog, [noiseMagnitudesLength, numMats]);
+fprLog = reshape(fprLog, [noiseMagnitudesLength, numMats]);
+accLog = reshape(accLog, [noiseMagnitudesLength, numMats]);
 
 % Save experiment results
 save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog');
@@ -180,56 +162,26 @@ save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'acc
 
 % Show average accuracies for each number of perturbations and
 % observations.
-aveAccuracies = nanmean(accLog, 3);
-figure(2)
-clims = [0, 1];
-imagesc(reshape(aveAccuracies, [numPertsLength, numObsLength]), clims)
-set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
-colormap jet
-colorbar
-title('Average Accuracy over Simulations')
-xlabel('Number of Observations')
-ylabel('Number of Perturbations')
-set(gca, 'XTick', numObsList)
-set(gca, 'YTick', numPertsList)
-%set(gca, 'TickLength', [0 0])
+aveAccuracies = nanmean(accLog, 2);
+figure(1)
+plot(noiseMagnitudes, aveAccuracies)
+xlabel('Magnitude of Noise')
+ylabel('Average Accuracy over Simulations')
 
 
 % Show average TPR for each number of perturbations and
 % observations.
-aveTPR = nanmean(tprLog, 3);
-figure(3)
-clims = [0, 1];
-imagesc(reshape(aveTPR, [numPertsLength, numObsLength]), clims)
-set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
-colormap jet
-colorbar
-title('Average TPR over Simulations')
-xlabel('Number of Observations')
-ylabel('Number of Perturbations')
-set(gca, 'XTick', numObsList)
-set(gca, 'YTick', numPertsList)
-%set(gca, 'TickLength', [0 0])
+aveTPR = nanmean(tprLog, 4);
+figure(2)
+plot(noiseMagnitudes, aveTPR)
+xlabel('Magnitude of Noise')
+ylabel('Average TPR over Simulations')
 
 
 % Show average FPR for each number of perturbations and
 % observations.
-aveFPR = nanmean(fprLog, 3);
-figure(4)
-clims = [0, 1];
-imagesc(reshape(aveFPR, [numPertsLength, numObsLength]), clims)
-set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
-colormap jet
-colorbar
-title('Average FPR over Simulations')
-xlabel('Number of Observations')
-ylabel('Number of Perturbations')
-set(gca, 'XTick', numObsList)
-set(gca, 'YTick', numPertsList)
-%set(gca, 'TickLength', [0 0])
+aveFPR = nanmean(fprLog, 4);
+figure(3)
+plot(noiseMagnitudes, aveFPR)
+xlabel('Magnitude of Noise')
+ylabel('Average FPR over Simulations')

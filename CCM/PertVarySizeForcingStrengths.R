@@ -3,13 +3,14 @@ library(lattice)
 library(abind)
 library(doParallel)
 require(R.matlab)
+require(matlabr)
 setwd("~/netinf/CCM")
 source('ccm_helper.R')
 source('CCMBaseExperiment.R')
 source('AnalysisFunctions/moving_average.R')
 
 exp_name <- "PertVarySizeForcingStrengths"
-exp_path <- sprintf("../HarmonicExperiments/EXP%s", exp_name)
+exp_path <- sprintf("../KuramotoExperiments/EXP%s", exp_name)
 
 print(exp_path)
 
@@ -38,6 +39,9 @@ num_libs <- 1
 num_trials <- 1
 num_samples <- 100
 
+max_delay <- 100
+max_emb <- 20
+
 #window_size <- 10
 #preprocfn <- function(x) {moving_average(x, window_size)}
 preprocfn <- identity
@@ -52,7 +56,7 @@ num_strengths <- params$numStrengths
 num_mats <- params$numMats
 
 # Register number of cores
-registerDoParallel(cores=2)
+registerDoParallel(cores=12)
 
 # Iterate over all possible connection probabilities and spring constants
 results <-
@@ -61,10 +65,13 @@ results <-
       foreach (l = 1:num_strengths, .combine='cbind') %:%
         foreach (m = 1:num_mats, .combine='cbind') %do% {
           print(sprintf('size: %d, force: %d, strength: %d, mat: %d', j, k, l, m))
-          data_log <- readMat(sprintf("%s/size%d/force%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, l, m))
+          data_path <- sprintf("%s/size%d/force%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, l, m)
+          result_path <- sprintf("%s/size%d/force%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, l, m)
+          data_log <- readMat(data_path)
           data <- data_log$noisyData
           mat <- data_log$mat
-          result <- CCMBaseExperiment(data, mat, E, num_libs, num_trials, num_samples, preprocfn)
+          emb_params <- embed_params(data_path, result_path, max_delay, max_emb)
+          result <- CCMBaseExperiment(data, mat, emb_params$E, num_libs, emb_params$tau, num_trials, num_samples, preprocfn)
         }
 
 # Create data structures to hold experiment results

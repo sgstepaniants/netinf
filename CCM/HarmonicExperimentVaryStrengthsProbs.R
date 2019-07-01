@@ -69,7 +69,8 @@ results <-
         
         data <- adrop(data_log[,,, i, j, m, drop=FALSE], drop=4:5)
         mat <- adrop(true_mats[,, i, j, m, drop=FALSE], drop=3:4)
-        result <- CCMBaseExperiment(data, mat, E, num_libs, num_trials, num_samples, preprocfn)
+        emb_params <- embed_params(data[,, 1])
+        result <- CCMBaseExperiment(data, mat, emb_params$E, num_libs, emb_params$tau, num_trials, num_samples, preprocfn)
       }
 
 # Create data structures to hold experiment results

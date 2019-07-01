@@ -25,8 +25,8 @@ mfn = @(n) constfn(n, 1);
 damping = 0;
 cfn = @(n) constfn(n, damping);
 
-prob = 0.5;
-strength = 10;
+prob = 0.1;
+strength = 1;
 
 mat = MakeNetworkSymmER(nvars, prob, true);
 K = MakeNetworkTriDiag(nvars+2, false);
@@ -46,11 +46,5 @@ noisyData = noisefn(data);
 
 tau = round(mdDelay(data.', 'maxLag', maxDelay, 'plottype', 'mean'))
 currMaxEmb = min(floor(nobs / tau), maxEmb);
-[fnnPercent, Es] = mdFnn(data(1, :).', tau, 'maxEmb', currMaxEmb, 'doPlot', 1);
-
-numEs = length(Es);
-p1 = [Es(1), fnnPercent(1), 0];
-p2 = [Es(end), fnnPercent(end), 0];
-proj = cross(repmat(p2 - p1, [numEs, 1]), [Es.', fnnPercent.', zeros(numEs, 1)] - repmat(p1, [numEs, 1]), 2) / norm(p2 - p1);
-dists = sqrt(sum(proj.^2, 2));
-[~, E] = max(dists)
+[fnnPercent, Es] = mdFnn(data(2, :).', tau, 'maxEmb', currMaxEmb, 'doPlot', 1);
+E = findElbow(Es, fnnPercent)

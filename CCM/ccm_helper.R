@@ -39,6 +39,25 @@ get_ccm_rho <- function(data, E, lib_sizes, tau=1, num_trials=dim(data)[3], num_
 }
 
 
+embed_params <- function(data_path, result_path, max_delay, max_emb) {
+  code = c("addpath('../DataScripts/SimulateData')",
+           "addpath('../mdembedding')",
+           sprintf("maxDelay = %d; maxEmb = %d;", max_delay, max_emb),
+           sprintf("load('%s');", data_path),
+           
+           "nobs = size(noisyData, 2);",
+           "tau = round(mdDelay(noisyData.', 'maxLag', maxDelay, 'plottype', 'none'));",
+           "currMaxEmb = min(floor(nobs / tau), maxEmb);",
+           "[fnnPercent, Es] = mdFnn(noisyData(1, :).', tau, 'maxEmb', currMaxEmb, 'doPlot', 1);",
+           "E = findElbow(Es, fnnPercent);",
+           sprintf("save('%s', 'tau', 'E', '-ascii')", result_path))
+  res = run_matlab_code(code)
+  output = readLines(con = result_path)
+  emb_params <- list("tau"=as.numeric(output[1]), "E"=as.numeric(output[2]))
+  return(emb_params)
+}
+
+
 # TODO: Make get_adj returns two adjacency matrices, one containing complexity estimates
 # and the other containing directionality estimates.
 #get_adj <- function(ccm_rho_graphs) {

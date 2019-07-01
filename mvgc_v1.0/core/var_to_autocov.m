@@ -120,7 +120,7 @@
 %%
 
 function [G,info] = var_to_autocov(A,SIG,acmaxlags,acdectol,aitr,maxiters,maxrelerr)
-save 'A';
+
 %global have_dlyap;
 
 % default parameters

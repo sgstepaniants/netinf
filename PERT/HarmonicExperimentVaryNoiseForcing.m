@@ -181,22 +181,26 @@ save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'acc
 % Show average accuracies
 aveAccuracies = nanmean(accLog, 3);
 figure(1)
-imagesc(reshape(aveAccuracies, [noiseMagnitudesLength, numForces]))
+clims = [0, 1];
+imagesc(reshape(aveAccuracies, [noiseMagnitudesLength, numForces]), clims)
 set(gca,'YDir','normal')
 colormap jet
-colorbar
-title('Average Accuracy')
-xlabel('Force')
-ylabel('Noise')
-set(gca, 'XTick', forces)
-set(gca, 'YTick', noiseMagnitudes)
+%colorbar
+%title('Average Accuracy')
+%xlabel('Force')
+%ylabel('Noise')
+%set(gca, 'XTick', forces)
+%set(gca, 'YTick', noiseMagnitudes)
 %set(gca,'TickLength', [0 0])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 
 
 % Show average TPR
 aveTPR = nanmean(tprLog, 3);
 figure(2)
-imagesc(reshape(aveTPR, [noiseMagnitudesLength, numForces]))
+clims = [0, 1];
+imagesc(reshape(aveTPR, [noiseMagnitudesLength, numForces]), clims)
 set(gca,'YDir','normal')
 colormap jet
 colorbar
@@ -211,7 +215,8 @@ set(gca, 'YTick', noiseMagnitudes)
 % Show average FPR
 aveFPR = nanmean(fprLog, 3);
 figure(3)
-imagesc(reshape(aveFPR, [noiseMagnitudesLength, numForces]))
+clims = [0, 1];
+imagesc(reshape(aveFPR, [noiseMagnitudesLength, numForces]), clims)
 set(gca,'YDir','normal')
 colormap jet
 colorbar

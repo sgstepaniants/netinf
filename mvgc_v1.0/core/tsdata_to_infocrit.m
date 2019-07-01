@@ -159,9 +159,6 @@ if  strcmpi(regmode,'OLS') % OLS (QR decomposition)
         [aic(i),bic(i)] = infocrit(-(M/2)*log(DSIG),q*n*n,M); % -(M/2)*log(DSIG) is max log-likelihood
         if verb, fprintf(1,'\n'); end
     end
-    
-    save('ols_A.mat', 'A')
-    save('ols_E.mat', 'E')
 
 elseif strcmpi(regmode,'LWR') % LWR (Morf)
 
@@ -291,9 +288,7 @@ elseif strcmpi(regmode,'LWR') % LWR (Morf)
         [aic(i),bic(i)] = infocrit(-(M/2)*log(DSIG),i*n*n,M); % -(M/2)*log(DSIG) is max log-likelihood
         if verb, fprintf(1,'\n'); end
     end
-    
-    save('lwr_A.mat', 'AF')
-    save('lwr_E.mat', 'E')
+
 else
     error('bad regression mode ''%s''',regmode);
 end

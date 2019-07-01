@@ -168,7 +168,8 @@ save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'acc
 % Show average accuracies
 aveAccuracies = nanmean(accLog, 3);
 figure(1)
-imagesc(reshape(aveAccuracies, [noiseMagnitudesLength, numForces]))
+clims = [0, 1];
+imagesc(reshape(aveAccuracies, [noiseMagnitudesLength, numForces]), clims)
 set(gca,'YDir','normal')
 colormap jet
 colorbar

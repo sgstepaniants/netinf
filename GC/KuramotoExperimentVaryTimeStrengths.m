@@ -12,14 +12,14 @@ endtimes = 5 : 5 : 25;
 numEndtimes = length(endtimes);
 
 % Connection strengths
-strengths = 3 : 10;
+strengths = 1 : 2 : 10;
 numStrengths = length(strengths);
 
 % Initial conditions
 pfn = @(n) randfn(n, 0, 2*pi);
 wfn = @(n) randfn(n, -1, 1);
 
-% Specify noise and prepocessing for data.
+% Specify noise and prepocessing for data
 measParam = 0.1;
 noisefn = @(data) WhiteGaussianNoise(data, measParam);
 
@@ -33,12 +33,12 @@ preprocfn = @(data) cos(data);
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 1;
 
 % Number of experimental trials
 numTrials = 100;
 
-rhoThresh = 1;
+rhoThresh = 0.995;
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
@@ -70,16 +70,20 @@ mkdir(resultPath)
 %% Generate Data and Run Granger Causality Experiments
 
 % Run PCI to infer network connections.
-predMats = cell(numEndtimes, numStrengths, numMats);
-tprLog = nan(numEndtimes, numStrengths, numMats);
-fprLog = nan(numEndtimes, numStrengths, numMats);
-accLog = nan(numEndtimes, numStrengths, numMats);
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', 'accLog');
+predMats = cell(1, numEndtimes * numStrengths * numMats);
+tprLog = nan(1, numEndtimes * numStrengths * numMats);
+fprLog = nan(1, numEndtimes * numStrengths * numMats);
+accLog = nan(1, numEndtimes * numStrengths * numMats);
+numRerun = zeros(1, numEndtimes * numStrengths * numMats);
+diagnosticsLog = nan(numEndtimes * numStrengths * numMats, 3);
+
+parsave = @(fname, noisyData, mat, K)...
+            save(fname, 'noisyData', 'mat');
 
 % Number of parallel processes
 M = 12;
 c = progress(numEndtimes * numStrengths * numMats);
-parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
+for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
     [j, k, m] = ind2sub([numEndtimes, numStrengths, numMats], idx);
     fprintf('endtime: %d, strength: %d\n', j, k)
     
@@ -114,22 +118,32 @@ parfor (idx = 1 : numEndtimes * numStrengths * numMats, M)
         [est, tableResults] = GrangerBaseExperiment(noisyData, ...
                 mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
+            numRerun(idx) = numRerun(idx) + 1;
             continue
         end
 
-        parSave.parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        results = load(sprintf('%s/results.mat', resultPath));
-        parSave.parResultsSave(sprintf('%s/results.mat', resultPath), j, k, m, results, est,...
-            tableResults.tpr, tableResults.fpr, tableResults.acc);
+        parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
+        
+        predMats{idx} = est;
+        tprLog(idx) = tableResults.tpr;
+        fprLog(idx) = tableResults.fpr;
+        accLog(idx) = tableResults.acc;
+        diagnosticsLog(idx, :) = tableResults.diagnostics;
         break
     end
 end
 
-results = load(sprintf('%s/results.mat', resultPath));
-predMats = results.predMats;
-tprLog = results.tprLog;
-fprLog = results.fprLog;
-accLog = results.accLog;
+% Reshape data structures
+predMats = reshape(predMats, numEndtimes, numStrengths, numMats);
+tprLog = reshape(tprLog, [numEndtimes, numStrengths, numMats]);
+fprLog = reshape(fprLog, [numEndtimes, numStrengths, numMats]);
+accLog = reshape(accLog, [numEndtimes, numStrengths, numMats]);
+diagnosticsLog = reshape(diagnosticsLog, [numEndtimes, numStrengths, numMats, 3]);
+numRerun = sum(reshape(numRerun, [numEndtimes, numStrengths, numMats]), 4);
+
+% Save experiment results
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results

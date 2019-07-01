@@ -4,19 +4,16 @@ addpath('../DataScripts')
 addpath('../DataScripts/SimulateData')
 addpath('../DataScripts/SimulateData/InitFunctions')
 
-expNum = 'VarySizeStrengthsTrials';
+expNum = 'VarySizeStrengths';
 
-networkSizes = 2:2:1;
+networkSizes = 20; %2 : 2 : 20;
 numSizes = length(networkSizes);
 
-strengths = [1, 2, 5, 10, 50];
+strengths = 0.1; %1 : 10;
 numStrengths = length(strengths);
 
-trialsList = [1, 10, 25, 50, 100];
-trialsListLength = length(trialsList);
-
 % Initialize masses, positions, and velocities of oscillators.
-mfn = @(n) constfn(n, 1); %randfn(n, 0.7, 1.3);
+mfn = @(n) constfn(n, 1);
 pfn = @(n) randfn(n, -0.5, 0.5);
 vfn = @(n) zeros([n, 1]);
 
@@ -42,6 +39,8 @@ prob = 0.5;
 
 % Number of matrices to average results over.
 numMats = 1;
+
+numTrials = 10;
 
 preprocfn = @(data) standardize(data);
 
@@ -78,24 +77,24 @@ mkdir(resultPath)
 
 %% Generate Data and Run Granger Causality Experiments
 
-predMats = cell(1, numSizes * numStrengths * trialsListLength * numMats);
-tprLog = nan(1, numSizes * numStrengths * trialsListLength * numMats);
-fprLog = nan(1, numSizes * numStrengths * trialsListLength * numMats);
-accLog = nan(1, numSizes * numStrengths * trialsListLength * numMats);
-numRerun = zeros(1, numSizes * numStrengths * trialsListLength * numMats);
-diagnosticsLog = nan(numSizes * numStrengths * trialsListLength * numMats, 3);
+predMats = cell(1, numSizes * numStrengths * numMats);
+tprLog = nan(1, numSizes * numStrengths * numMats);
+fprLog = nan(1, numSizes * numStrengths * numMats);
+accLog = nan(1, numSizes * numStrengths * numMats);
+numRerun = zeros(1, numSizes * numStrengths * numMats);
+diagnosticsLog = nan(numSizes * numStrengths * numMats, 3);
 
 parsave = @(fname, noisyData, mat, K)...
             save(fname, 'noisyData', 'mat', 'K');
 
 % Number of parallel processes
 M = 12;
-c = progress(numSizes * numStrengths * trialsListLength * numMats);
-for idx = 1 : numSizes * numStrengths * trialsListLength * numMats %parfor (idx = 1 : numSizes * numStrengths * trialsListLength * numMats, M)
-    [j, k, l, m] = ind2sub([numSizes, numStrengths, trialsListLength, numMats], idx);
-    fprintf('size: %d, strength: %d, trials: %d\n', j, k, l)
+c = progress(numSizes * numStrengths * numMats);
+parfor (idx = 1 : numSizes * numStrengths * numMats, M)
+    [j, k, m] = ind2sub([numSizes, numStrengths, numMats], idx);
+    fprintf('size: %d, strength: %d\n', j, k)
     
-    currExpPath = sprintf('%s/size%d/strength%d/trials%d/mat%d', expPath, j, k, l, m);
+    currExpPath = sprintf('%s/size%d/strength%d/mat%d', expPath, j, k, m);
     if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
         mkdir(currExpPath)
     else
@@ -107,7 +106,6 @@ for idx = 1 : numSizes * numStrengths * trialsListLength * numMats %parfor (idx 
     
     nvars = networkSizes(j);
     strength = strengths(k);
-    numTrials = trialsList(l);
     
     while true
         % Create adjacency matrices.
@@ -153,12 +151,12 @@ for idx = 1 : numSizes * numStrengths * trialsListLength * numMats %parfor (idx 
 end
 
 % Reshape data structures
-predMats = reshape(predMats, numSizes, numStrengths, trialsListLength, numMats);
-tprLog = reshape(tprLog, [numSizes, numStrengths, trialsListLength, numMats]);
-fprLog = reshape(fprLog, [numSizes, numStrengths, trialsListLength, numMats]);
-accLog = reshape(accLog, [numSizes, numStrengths, trialsListLength, numMats]);
-diagnosticsLog = reshape(diagnosticsLog, [numSizes, numStrengths, trialsListLength, numMats, 3]);
-numRerun = sum(reshape(numRerun, [numSizes, numStrengths, trialsListLength, numMats]), 4);
+predMats = reshape(predMats, numSizes, numStrengths, numMats);
+tprLog = reshape(tprLog, [numSizes, numStrengths, numMats]);
+fprLog = reshape(fprLog, [numSizes, numStrengths, numMats]);
+accLog = reshape(accLog, [numSizes, numStrengths, numMats]);
+diagnosticsLog = reshape(diagnosticsLog, [numSizes, numStrengths, numMats, 3]);
+numRerun = sum(reshape(numRerun, [numSizes, numStrengths, numMats]), 4);
 
 % Save experiment results
 save(sprintf('%s/predMats.mat', resultPath), 'predMats');
@@ -171,11 +169,9 @@ save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
 
 %% Plot Results
 
-trialsInd = 1;
-
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(reshape(numRerun(:, :, trialsInd), [numSizes, numStrengths]))
+imagesc(reshape(numRerun, [numSizes, numStrengths]))
 set(gca,'YDir','normal')
 colormap jet
 colorbar
@@ -192,7 +188,7 @@ set(gca, 'YTick', networkSizes)
 aveAccuracies = nanmean(accLog, 4);
 figure(2)
 clims = [0, 1];
-imagesc(reshape(aveAccuracies(:, :, trialsInd), [numSizes, numStrengths]), clims)
+imagesc(reshape(aveAccuracies, [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -211,7 +207,7 @@ set(gca, 'YTick', networkSizes)
 aveTPR = nanmean(tprLog, 4);
 figure(3)
 clims = [0, 1];
-imagesc(reshape(aveTPR(:, :, trialsInd), [numSizes, numStrengths]), clims)
+imagesc(reshape(aveTPR, [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -230,7 +226,7 @@ set(gca, 'YTick', networkSizes)
 aveFPR = nanmean(fprLog, 4);
 figure(4)
 clims = [0, 1];
-imagesc(reshape(aveFPR(:, :, trialsInd), [numSizes, numStrengths]), clims)
+imagesc(reshape(aveFPR, [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])

@@ -6,11 +6,11 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 20;
+networkSizes = 2:5;
 numSizes = length(networkSizes);
 
 % Connection strengths
-strengths = 80; % IMPORTANT PARAMETER
+strengths = 1; % IMPORTANT PARAMETER
 numStrengths = length(strengths);
 
 % Forcing magnitudes
@@ -67,15 +67,15 @@ mkdir(expPath)
 save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
-resultPath = sprintf('%s/PertResults', expPath);
-if exist(resultPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    if upper(m) == 'N'
-       return
-    end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%resultPath = sprintf('%s/PertResults', expPath);
+%if exist(resultPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+%    if upper(m) == 'N'
+%       return
+%    end
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
@@ -156,10 +156,10 @@ fprLog = reshape(fprLog, [numSizes, numForces, numStrengths, numMats]);
 accLog = reshape(accLog, [numSizes, numForces, numStrengths, numMats]);
 
 % Save experiment results
-save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
-save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
-save(sprintf('%s/accLog.mat', resultPath), 'accLog');
+%save(sprintf('%s/predMats.mat', resultPath), 'predMats');
+%save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
+%save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
+%save(sprintf('%s/accLog.mat', resultPath), 'accLog');
 
 
 %% Plot Results

@@ -1,19 +1,20 @@
 clear all; close all; clc;
 run '../mvgc_v1.0/startup.m'
+addpath('../DataScripts')
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
-nvars = 5;
+nvars = 2;
 
 expNum = sprintf('VaryTimeStrengths_Size%d', nvars);
 
-% Simulation endtimes
-endtimes = 5 : 5 : 25;
-numEndtimes = length(endtimes);
-
 % Connection strengths
-strengths = 1 : 2 : 10;
+strengths = 1; %1 : 10;
 numStrengths = length(strengths);
+
+% Simulation endtimes
+endtimes = max(3, 25 / strengths); %5 : 5 : 25;
+numEndtimes = length(endtimes);
 
 % Initial conditions
 pfn = @(n) randfn(n, 0, 2*pi);
@@ -36,35 +37,35 @@ prob = 0.5;
 numMats = 1;
 
 % Number of experimental trials
-numTrials = 100;
+numTrials = 10;
 
 rhoThresh = 0.995;
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../KuramotoExperiments/%s', expName);
-if exist(expPath, 'dir') == 7
-    %m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
-    %if upper(m) == 'N'
-    %    return
-    %end
-    rmdir(expPath, 's')
-end
-mkdir(expPath)
+%if exist(expPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
+%    if upper(m) == 'N'
+%        return
+%    end
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
-resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') == 7
-    %m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    %if upper(m) == 'N'
-    %   return
-    %end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%resultPath = sprintf('%s/GCResults', expPath);
+%if exist(resultPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+%    if upper(m) == 'N'
+%       return
+%    end
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
@@ -77,7 +78,7 @@ accLog = nan(1, numEndtimes * numStrengths * numMats);
 numRerun = zeros(1, numEndtimes * numStrengths * numMats);
 diagnosticsLog = nan(numEndtimes * numStrengths * numMats, 3);
 
-parsave = @(fname, noisyData, mat, K)...
+parsave = @(fname, noisyData, mat)...
             save(fname, 'noisyData', 'mat');
 
 % Number of parallel processes
@@ -93,8 +94,6 @@ for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtime
     currExpPath = sprintf('%s/endtime%d/strength%d/mat%d', expPath, j, k, m);
     if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
         mkdir(currExpPath)
-    else
-        continue
     end
 
     endtime = endtimes(j);
@@ -113,7 +112,7 @@ for idx = 1 : numEndtimes * numStrengths * numMats %parfor (idx = 1 : numEndtime
         % Generate data with forced perturbations.
         data = GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
         noisyData = noisefn(data);
-
+        
         dataObsIdx = true([1, nvars]); % default parameter
         [est, tableResults] = GrangerBaseExperiment(noisyData, ...
                 mat, preprocfn, dataObsIdx, rhoThresh);
@@ -142,8 +141,8 @@ diagnosticsLog = reshape(diagnosticsLog, [numEndtimes, numStrengths, numMats, 3]
 numRerun = sum(reshape(numRerun, [numEndtimes, numStrengths, numMats]), 4);
 
 % Save experiment results
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-    'accLog', 'diagnosticsLog', 'numRerun');
+%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+%    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results
@@ -151,26 +150,27 @@ save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
 % Show average accuracies for each number of perturbations and
 % observations.
 aveAccuracies = nanmean(accLog, 3);
-figure(2)
+figure(1)
 clims = [0, 1];
 imagesc(aveAccuracies, clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average Accuracy over Simulations')
-xlabel('Connection Strength')
-ylabel('Endtime')
-set(gca, 'XTick', strengths)
-set(gca, 'YTick', endtimes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average Accuracy over Simulations')
+%xlabel('Connection Strength')
+%ylabel('Endtime')
+%set(gca, 'XTick', strengths)
+%set(gca, 'YTick', endtimes)
+set(gca, 'TickLength', [0 0])
+hold on; line(strengths, 10 ./ strengths, 'Linewidth', 5, 'Color', 'k')
 
 
 % Show average TPR for each number of perturbations and
 % observations.
 aveTPR = nanmean(tprLog, 3);
-figure(3)
+figure(2)
 clims = [0, 1];
 imagesc(aveTPR, clims)
 set(gca,'YDir','normal')
@@ -189,7 +189,7 @@ set(gca, 'YTick', endtimes)
 % Show average FPR for each number of perturbations and
 % observations.
 aveFPR = nanmean(fprLog, 3);
-figure(4)
+figure(3)
 clims = [0, 1];
 imagesc(aveFPR, clims)
 set(gca,'YDir','normal')

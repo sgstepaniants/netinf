@@ -8,6 +8,14 @@ nvars = 2;
 % Experiment name
 expNum = sprintf('VaryStrengthsProbs_Size%d', nvars);
 
+% Probabilities of network connections to try.
+probs = 0:0.1:1;
+numProbs = length(probs);
+
+% Connection strengths to try.
+strengths = 1:1:10;
+numStrengths = length(strengths);
+
 % Initialize positions and frequencies of oscillators.
 pfn = @(n) randfn(n, -0.5, 0.5);
 wfn = @(n) randfn(n, -1, 1);
@@ -25,20 +33,12 @@ noisefn  = @(data) WhiteGaussianNoise(data, measParam);
 % Specify forcing function for oscillators.
 forcingFunc = zeros([nvars, nobs]);
 
-% Probabilities of network connections to try.
-probs = 0.1:0.1:1;
-numProbs = length(probs);
-
-% Connection strengths to try.
-strengths = 1:1:10;
-numStrengths = length(strengths);
-
 % Number of matrices to try for each probability and connection strength
 % combination.
 numMats = 1;
 
 % Number of simulation trials.
-numTrials = 10;
+numTrials = 100;
 
 % Spectral radius threshold for MVGC toolbox.
 rhoThresh = 0.995;
@@ -47,57 +47,62 @@ rhoThresh = 0.995;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../KuramotoExperiments/%s', expName);
-if exist(expPath, 'dir') ~= 7
-    mkdir(expPath)
-else
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
-    if upper(m) == 'N'
-       return
-    end
-end
+%if exist(expPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
+%    if upper(m) == 'N'
+%        return
+%    end
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
-
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
-resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') ~= 7
-    mkdir(resultPath)
-else
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    if upper(m) == 'N'
-       return
-    end
-end
+%resultPath = sprintf('%s/GCResults', expPath);
+%if exist(resultPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+%    if upper(m) == 'N'
+%       return
+%    end
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
+
 
 %% Generate Data and Run Granger Causality Experiments
 
-% Create random connectivity matrices and simulate oscillator trajectories.
-dataLog = nan(nvars, nobs, numTrials, numProbs * numStrengths * numMats);
-trueMats = nan(nvars, nvars, numProbs * numStrengths * numMats);
-
 % Run Granger Causality to infer network connections.
-freq = 1;
 preprocfn = @(data) cos(data);
-save(sprintf('%s/expParams.mat', resultPath), 'freq', 'preprocfn')
+save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
 
-predMats = nan(nvars, nvars, numProbs * numStrengths * numMats);
-numRerun = zeros(1, numProbs * numStrengths * numMats);
+predMats = cell(1, numProbs * numStrengths * numMats);
 tprLog = nan(1, numProbs * numStrengths * numMats);
 fprLog = nan(1, numProbs * numStrengths * numMats);
 accuracyLog = nan(1, numProbs * numStrengths * numMats);
+numRerun = zeros(1, numProbs * numStrengths * numMats);
 diagnosticsLog = nan(numProbs * numStrengths * numMats, 3);
+
+parsave = @(fname, noisyData, mat)...
+            save(fname, 'noisyData', 'mat');
 
 % Number of parallel processes
 M = 12;
 c = progress(numProbs * numStrengths * numMats);
 parfor (idx = 1 : numProbs * numStrengths * numMats, M)
-    [j, k, l] = ind2sub([numProbs, numStrengths, numMats], idx);
-    prob = probs(j);
-    strength = strengths(k);
+    [j, k, m] = ind2sub([numProbs, numStrengths, numMats], idx);
+    fprintf('prob: %d, strength: %d\n', j, k)
     
     c.count();
+    
+    currExpPath = sprintf('%s/endtime%d/strength%d/mat%d', expPath, j, k, m);
+    if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
+        mkdir(currExpPath)
+    end
+    
+    prob = probs(j);
+    strength = strengths(k);
     
     while true
         % Create adjacency matrices.
@@ -112,16 +117,15 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
 
         dataObsIdx = true([1, nvars]); % default parameter
         [est, tableResults] = GrangerBaseExperiment(noisyData, ...
-                mat, preprocfn, freq, '', dataObsIdx, rhoThresh);
+                mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
-
-        dataLog(:, :, :, idx) = noisyData;
-        trueMats(:, :, idx) = mat;
+        
+        parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
+        
         predMats(:, :, idx) = est;
-
         tprLog(idx) = tableResults.tpr;
         fprLog(idx) = tableResults.fpr;
         accuracyLog(idx) = tableResults.acc;
@@ -140,17 +144,8 @@ fprLog = reshape(fprLog, [numProbs, numStrengths, numMats]);
 accuracyLog = reshape(accuracyLog, [numProbs, numStrengths, numMats]);
 diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
 
-% Save experiment simulated data and connectivity matrices.
-save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
-save(sprintf('%s/trueMats.mat', expPath), 'trueMats');
-
-% Save experiment results
-save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
-save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
-save(sprintf('%s/accuracyLog.mat', resultPath), 'accuracyLog');
-save(sprintf('%s/diagnosticsLog.mat', resultPath), 'diagnosticsLog');
-save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results

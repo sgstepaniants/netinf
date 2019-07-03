@@ -9,7 +9,7 @@ expNum = 'VarySizeStrengths';
 networkSizes = 20; %2 : 2 : 20;
 numSizes = length(networkSizes);
 
-strengths = 0.1; %1 : 10;
+strengths = 1; %1 : 10;
 numStrengths = length(strengths);
 
 % Initialize masses, positions, and velocities of oscillators.

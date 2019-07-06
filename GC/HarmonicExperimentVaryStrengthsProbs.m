@@ -4,17 +4,17 @@ addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
 % Network size
-nvars = 10;
+nvars = 5;
 
 % Experiment name
 expNum = sprintf('VaryStrengthsProbs_Size%d', nvars);
 
 % Probabilities of network connections
-probs = 0.5 %0:0.1:1;
+probs = 0 : 0.1 : 1;
 numProbs = length(probs);
 
 % Connection strengths
-strengths = 1 %1:1:10;
+strengths = 1 : 1 : 10;
 numStrengths = length(strengths);
 
 % Initialize masses, positions, and velocities of oscillators.
@@ -44,7 +44,7 @@ bc = 'fixed';
 
 % Number of matrices to try for each probability and connection strength
 % combination.
-numMats = 10;
+numMats = 100;
 
 % Number of simulation trials.
 numTrials = 10;
@@ -57,24 +57,24 @@ rhoThresh = 0.995;
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../HarmonicExperiments/%s', expName);
 if exist(expPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
-    if upper(m) == 'N'
-        return
-    end
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
+%    if upper(m) == 'N'
+%        return
+%    end
     rmdir(expPath, 's')
 end
 mkdir(expPath)
 
 % Save experiment parameters.
-%save(sprintf('%s/params.mat', expPath));
+save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
 if exist(resultPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    if upper(m) == 'N'
-       return
-    end
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+%    if upper(m) == 'N'
+%       return
+%    end
     rmdir(resultPath, 's')
 end
 mkdir(resultPath)
@@ -94,13 +94,15 @@ accLog = nan(1, numProbs * numStrengths * numMats);
 numRerun = zeros(1, numProbs * numStrengths * numMats);
 diagnosticsLog = nan(numProbs * numStrengths * numMats, 3);
 
-parsave = @(fname, noisyData, mat, K)...
-            save(fname, 'noisyData', 'mat', 'K');
+parDataSave = @(fname, noisyData, mat, K)...
+            save(fname, 'noisyData', 'mat', 'K');    
+parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
+            save(fname, 'est', 'tpr', 'fpr', 'acc', 'diagnostics');
 
 % Number of parallel processes
 M = 12;
 c = progress(numProbs * numStrengths * numMats);
-for idx = 1 : numProbs * numStrengths * numMats %parfor (idx = 1 : numProbs * numStrengths * numMats, M)
+parfor (idx = 1 : numProbs * numStrengths * numMats, M)
     [j, k, m] = ind2sub([numProbs, numStrengths, numMats], idx);
     fprintf('prob: %d, strength: %d\n', j, k)
     
@@ -143,7 +145,9 @@ for idx = 1 : numProbs * numStrengths * numMats %parfor (idx = 1 : numProbs * nu
             continue
         end
 
-        parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
+        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
+        parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
+            tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
 
         predMats(:, :, idx) = est;
         tprLog(idx) = tableResults.tpr;
@@ -162,8 +166,8 @@ accLog = reshape(accLog, [numProbs, numStrengths, numMats]);
 numRerun = sum(reshape(numRerun, [numProbs, numStrengths, numMats]), 3);
 diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
 
-%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-%    'accLog', 'diagnosticsLog', 'numRerun');
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results

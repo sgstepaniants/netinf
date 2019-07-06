@@ -1,4 +1,7 @@
 clear all; close all; clc;
+addpath('../DataScripts')
+addpath('../DataScripts/SimulateData/')
+addpath('../DataScripts/SimulateData/InitFunctions/')
 
 networkSizes = 1 : 20;
 numSizes = length(networkSizes);
@@ -19,6 +22,10 @@ wfn = @(n) 2*rand([n, 1]) - ones(n,1); % uniform [-1, 1]
 noisefn  = @(data) WhiteGaussianNoise(data, 0.01);
 prob = 0.5;
 
+secondDerivThresh = 0.001;
+w = gausswin(15);
+w = w / sum(w);
+
 charTimes = nan([numSizes, numStrengths, numMats]);
 for j = 1 : numSizes
     nvars = networkSizes(j)
@@ -27,12 +34,16 @@ for j = 1 : numSizes
         for m = 1 : numMats
             mat = MakeNetworkER(nvars, prob, true);
             forcingFunc = zeros(nvars, nobs);
-
             data = GenerateKuramotoData(mat, tSpan, 1, strength, pfn, wfn, forcingFunc);
-            secondDeriv = diff(diff(data, [], 2), 2);
-            charTime = find(all(abs(secondDeriv) < 0.01, 1), 1, 'first');
-            if isempty(charTime)
+            
+            smoothedData = filter(w, 1, data, [], 2);
+            secondDeriv = diff(smoothedData, 2, 2);
+            trajAligned = all(abs(secondDeriv) < secondDerivThresh, 1);
+            charTime = find(diff(trajAligned), 1, 'last');
+            if trajAligned(end) == 0
                 charTime = NaN;
+            elseif all(trajAligned) == 1
+                charTime = 1;
             end
 
             charTimes(j, k, m) = charTime;
@@ -40,7 +51,9 @@ for j = 1 : numSizes
     end
 end
 
+save charTimes
 meanCharTime = nanmean(charTimes, 3);
+
 figure(1);
 surf(meanCharTime)
 set(gca, 'XTickLabel', [])
@@ -51,6 +64,8 @@ set(gca, 'TickLength', [0 0])
 
 figure(2)
 plot(1 ./ strengths, meanCharTime, 'Linewidth', 2)
+hold on;
+plot(1 ./ strengths, 250 ./ strengths, 'Linewidth', 3)
 set(gca, 'XTickLabel', [])
 set(gca, 'YTickLabel', [])
 set(gca, 'ZTickLabel', [])

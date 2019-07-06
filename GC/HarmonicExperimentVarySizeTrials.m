@@ -9,7 +9,7 @@ expNum = 'VarySizeTrials';
 networkSizes = 10; %[2, 5, 10, 15, 20];
 numSizes = length(networkSizes);
 
-trialsList = 50; %[1, 10, 25, 50, 100];
+trialsList = 10; %[1, 10, 25, 50, 100];
 trialsListLength = length(trialsList);
 
 % Initialize masses, positions, and velocities of oscillators.
@@ -17,7 +17,7 @@ mfn = @(n) constfn(n, 1);
 pfn = @(n) randfn(n, -0.5, 0.5);
 vfn = @(n) zeros([n, 1]);
 
-strength = 1;
+strength = 5;
 
 % Specify the damping constant.
 damping = 0.2;
@@ -40,7 +40,7 @@ bc = 'fixed';
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 1;
+numMats = 10;
 
 preprocfn = @(data) standardize(data);
 
@@ -51,28 +51,28 @@ rhoThresh = 0.995;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../HarmonicExperiments/%s', expName);
-if exist(expPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
-    if upper(m) == 'N'
-        return
-    end
-    rmdir(expPath, 's')
-end
-mkdir(expPath)
+%if exist(expPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
+%    if upper(m) == 'N'
+%     return
+%    end
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    if upper(m) == 'N'
-       return
-    end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%if exist(resultPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+%    if upper(m) == 'N'
+%       return
+%    end
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
@@ -95,11 +95,11 @@ for idx = 1 : numSizes * trialsListLength * numMats %parfor (idx = 1 : numSizes 
     fprintf('size: %d, trials: %d\n', j, k, m)
     
     currExpPath = sprintf('%s/size%d/trials%d/mat%d', expPath, j, k, m);
-    if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
-        mkdir(currExpPath)
-    else
-        continue
-    end
+    %if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
+    %    mkdir(currExpPath)
+    %else
+    %    continue
+    %end
     
     % Count the number of iterations done by the parfor loop
     c.count();
@@ -139,7 +139,7 @@ for idx = 1 : numSizes * trialsListLength * numMats %parfor (idx = 1 : numSizes 
             continue
         end
         
-        parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
+        %parsave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
         
         predMats{idx} = est;
         tprLog(idx) = tableResults.tpr;
@@ -159,8 +159,8 @@ diagnosticsLog = reshape(diagnosticsLog, [numSizes, trialsListLength, numMats, 3
 numRerun = sum(reshape(numRerun, [numSizes, trialsListLength, numMats]), 3);
 
 % Save experiment results
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-    'accLog', 'diagnosticsLog', 'numRerun');
+%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+%    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results
@@ -171,66 +171,63 @@ imagesc(reshape(numRerun, [numSizes, trialsListLength]))
 set(gca,'YDir','normal')
 colormap jet
 colorbar
-title('Number of Simulations Rerun by Our Analysis')
-xlabel('Number of Trials')
-ylabel('Network Size')
-set(gca, 'XTick', trialsList)
-set(gca, 'YTick', networkSizes)
-%set(gca,'TickLength', [0 0])
+%title('Number of Simulations Rerun by Our Analysis')
+%xlabel('Number of Trials')
+%ylabel('Network Size')
+%set(gca, 'XTick', trialsList)
+%set(gca, 'YTick', networkSizes)
+set(gca,'TickLength', [0 0])
 
 
 % Show average accuracies for each number of perturbations and
 % observations.
-aveAccuracies = nanmean(accLog, 4);
+aveAccuracies = nanmean(accLog, 3);
 figure(2)
 clims = [0, 1];
 imagesc(reshape(aveAccuracies, [numSizes, trialsListLength]), clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average Accuracy over Simulations')
-xlabel('Number of Trials')
-ylabel('Network Size')
-set(gca, 'XTick', trialsList)
-set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average Accuracy over Simulations')
+%xlabel('Number of Trials')
+%ylabel('Network Size')
+%set(gca, 'XTick', trialsList)
+%set(gca, 'YTick', networkSizes)
 
 
 % Show average TPR for each number of perturbations and
 % observations.
-aveTPR = nanmean(tprLog, 4);
+aveTPR = nanmean(tprLog, 3);
 figure(3)
 clims = [0, 1];
 imagesc(reshape(aveTPR, [numSizes, trialsListLength]), clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average TPR over Simulations')
-xlabel('Number of Trials')
-ylabel('Network Size')
-set(gca, 'XTick', trialsList)
-set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average TPR over Simulations')
+%xlabel('Number of Trials')
+%ylabel('Network Size')
+%set(gca, 'XTick', trialsList)
+%set(gca, 'YTick', networkSizes)
 
 
 % Show average FPR for each number of perturbations and
 % observations.
-aveFPR = nanmean(fprLog, 4);
+aveFPR = nanmean(fprLog, 3);
 figure(4)
 clims = [0, 1];
 imagesc(reshape(aveFPR, [numSizes, trialsListLength]), clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average FPR over Simulations')
-xlabel('Number of Trials')
-ylabel('Network Size')
-set(gca, 'XTick', trialsList)
-set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average FPR over Simulations')
+%xlabel('Number of Trials')
+%ylabel('Network Size')
+%set(gca, 'XTick', trialsList)
+%set(gca, 'YTick', networkSizes)

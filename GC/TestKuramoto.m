@@ -3,9 +3,9 @@
 
 clear all; close all; clc;
 
-nvars = 3;
+nvars = 10;
 
-endtime = 15;
+endtime = 25;
 deltat = 0.1;
 nobs = round(endtime / deltat);
 tSpan = linspace(0, endtime, nobs);
@@ -16,7 +16,7 @@ prob = 0.5;
 mat = ones(nvars); % adjacency matrix
 mat(1 : nvars + 1 : nvars^2) = 0;
 %mat = MakeNetworkER(nvars, prob, true);
-K = 0.5; % connection strength
+K = 10; % connection strength
 
 pfn = @(n) 2*pi*rand([n, 1]); % uniform [0, 2pi]
 wfn = @(n) 2*rand([n, 1]) - ones(n,1); % uniform [-1, 1]
@@ -24,17 +24,25 @@ wfn = @(n) 2*rand([n, 1]) - ones(n,1); % uniform [-1, 1]
 forcingFunc = zeros(nvars, nobs);
 Y = GenerateKuramotoData(mat, tSpan, 1, K, pfn, wfn, forcingFunc);
 X = noisefn(Y);
-%plot(Y.')
+hax = axes;
+plot(Y.')
+%plot3(X(1, :), X(2, :), X(3, :), 'ro')
 
-plot3(X(1, :), X(2, :), X(3, :), 'ro')
-
-secondDeriv = diff(diff(Y, [], 2), 2);
-charTime = find(all(abs(secondDeriv) < 0.01, 1), 1, 'first');
-if isempty(charTime)
-    charTime = Inf;
+secondDerivThresh = 0.001;
+w = gausswin(15);
+w = w / sum(w);
+smoothedData = filter(w, 1, Y, [], 2);
+secondDeriv = diff(smoothedData, 2, 2);
+trajAligned = all(abs(secondDeriv) < secondDerivThresh, 1);
+charTime = find(diff(trajAligned), 1, 'last');
+if trajAligned(end) == 0
+    charTime = NaN;
+elseif all(trajAligned) == 1
+    charTime = 1;
 end
 
-charTime
+hold on;
+line([charTime, charTime], get(hax,'YLim'), 'Linewidth', 3, 'Color', 'k')
 
 % for t = 1 : size(tSpan, 2)
 %     for i = 1 : nvars

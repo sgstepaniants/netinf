@@ -42,13 +42,13 @@ get_ccm_rho <- function(data, E, lib_sizes, tau=1, num_trials=dim(data)[3], num_
 embed_params <- function(data_path, result_path, max_delay, max_emb) {
   code = c("addpath('../DataScripts/SimulateData')",
            "addpath('../mdembedding')",
-           sprintf("maxDelay = %d; maxEmb = %d;", max_delay, max_emb),
+           sprintf("maxDelay = %f; maxEmb = %f;", max_delay, max_emb),
            sprintf("load('%s');", data_path),
-           
            "nobs = size(noisyData, 2);",
-           "tau = round(mdDelay(noisyData.', 'maxLag', maxDelay, 'plottype', 'none'));",
-           "currMaxEmb = min(floor(nobs / tau), maxEmb);",
-           "[fnnPercent, Es] = mdFnn(noisyData(1, :).', tau, 'maxEmb', currMaxEmb, 'doPlot', 1);",
+           "tau = round(mdDelay(noisyData(:, :, 1).', 'maxLag', min(nobs, maxDelay), 'plottype', 'none'));",
+           "currMaxEmb = nobs - 1;",
+           "if tau > 1; currMaxEmb = floor(nobs / tau); end",
+           "[fnnPercent, Es] = mdFnn(noisyData(1, :, 1).', tau, 'maxEmb', min(currMaxEmb, maxEmb), 'doPlot', 0);",
            "E = findElbow(Es, fnnPercent);",
            sprintf("save('%s', 'tau', 'E', '-ascii')", result_path))
   res = run_matlab_code(code)

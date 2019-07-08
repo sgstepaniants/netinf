@@ -102,19 +102,19 @@ for (ind in 1:(num_sizes*num_forces*num_strengths*num_mats)) {
 
 # Save experiment result files.
 saveRDS(pred_mats, sprintf("%s/pred_mats.rds", result_path))
-writeMat(sprintf("%s/predMats.m", result_path), A = pred_mats)
+writeMat(sprintf("%s/predMats.mat", result_path), A = pred_mats)
 
 saveRDS(tpr_log, sprintf("%s/tpr_log.rds", result_path))
-writeMat(sprintf("%s/tprLog.m", result_path), A = tpr_log)
+writeMat(sprintf("%s/tprLog.mat", result_path), A = tpr_log)
 
 saveRDS(fpr_log, sprintf("%s/fpr_log.rds", result_path))
-writeMat(sprintf("%s/fprLog.m", result_path), A = fpr_log)
+writeMat(sprintf("%s/fprLog.mat", result_path), A = fpr_log)
 
 saveRDS(acc_log, sprintf("%s/acc_log.rds", result_path))
-writeMat(sprintf("%s/accLog.m", result_path), A = acc_log)
+writeMat(sprintf("%s/accLog.mat", result_path), A = acc_log)
 
 saveRDS(graph_log, sprintf("%s/graph_log.rds", result_path))
-writeMat(sprintf("%s/graphLog.m", result_path), A = graph_log)
+writeMat(sprintf("%s/graphLog.mat", result_path), A = graph_log)
 
 
 # Plot accuracy, TPR, and FPR for all connections probability and spring constant combinations

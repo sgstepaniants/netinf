@@ -171,12 +171,12 @@ figure(2)
 clims = [0, 1];
 imagesc(aveAccuracies, clims)
 set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 colormap jet
-%colorbar
-%title('Average Accuracy over Simulations')
-%xlabel('Connection Strength')
+colorbar
+title('Average Accuracy over Simulations')
+xlabel('Connection Strength')
 %ylabel('Connection Probability')
 %set(gca, 'XTickLabel', strengths)
 %set(gca, 'YTickLabel', probs)
@@ -192,12 +192,13 @@ set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 colormap jet
-%colorbar
-%title('Average TPR over Simulations')
-%xlabel('Connection Strength')
-%ylabel('Connection Probability')
-%set(gca, 'XTickLabel', strengths)
-%set(gca, 'YTickLabel', probs)
+colorbar
+title('Average TPR over Simulations')
+xlabel('Connection Strength')
+ylabel('Connection Probability')
+set(gca, 'XTickLabel', strengths)
+set(gca, 'YTickLabel', probs)
+set(gca,'TickLength',[0 0])
 
 
 % Show average FPR for each number of perturbations and
@@ -210,9 +211,10 @@ set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 colormap jet
-%colorbar
-%title('Average FPR over Simulations')
-%xlabel('Connection Strength')
-%ylabel('Connection Probability')
-%set(gca, 'XTickLabel', strengths)
-%set(gca, 'YTickLabel', probs)
+colorbar
+title('Average FPR over Simulations')
+xlabel('Connection Strength')
+ylabel('Connection Probability')
+set(gca, 'XTickLabel', strengths)
+set(gca, 'YTickLabel', probs)
+set(gca,'TickLength',[0 0])

@@ -72,12 +72,12 @@ plot(noisefn(normalize(data)).' + repmat([2; 1; 0; -1; -2], [1, length(tSpan)]).
 
 % Noisy Kuramoto oscillator data
 A = [[0, 0, 1, 0, 0]; [1, 0, 0, 1, 0]; [0, 0, 0, 0, 1]; [0, 1, 1, 0, 0]; [0, 1, 0, 0, 0]];
-K = 1;
-wfn = @(n) randfn(n, -1, 1);
+K = 10.2;
+wfn = @(n) [2; 1; 0; -1; -2];
 
 data = GenerateKuramotoData(A, tSpan, 1, K, pfn, wfn, forcingFunc);
 figure(4)
-plot(noisefn(normalize(data)).' + repmat([2; 1; 0; -1; -2], [1, length(tSpan)]).', 'LineWidth', 3);
+plot(noisefn(data).' + repmat([2; 1; 0; -1; -2], [1, length(tSpan)]).', 'LineWidth', 5);
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 set(gca,'TickLength',[0 0])

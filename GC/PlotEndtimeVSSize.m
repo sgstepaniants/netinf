@@ -63,9 +63,9 @@ set(gca, 'TickLength', [0 0])
 
 
 figure(2)
-plot(1 ./ strengths, meanCharTime, 'Linewidth', 2)
-hold on;
-plot(1 ./ strengths, 250 ./ strengths, 'Linewidth', 3)
+plot(1 ./ strengths(10:25), meanCharTime(10:end, 10:25), 'Linewidth', 2)
+%hold on;
+%plot(1 ./ strengths, 250 ./ strengths, 'Linewidth', 3)
 set(gca, 'XTickLabel', [])
 set(gca, 'YTickLabel', [])
 set(gca, 'ZTickLabel', [])

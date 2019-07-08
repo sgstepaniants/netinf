@@ -45,6 +45,7 @@ noisyData = noisefn(data);
 %% Use mdembedd to find optimal time lag and embedding dimension
 
 tau = round(mdDelay(data.', 'maxLag', maxDelay, 'plottype', 'mean'))
-currMaxEmb = min(floor(nobs / tau), maxEmb);
-[fnnPercent, Es] = mdFnn(data(2, :).', tau, 'maxEmb', currMaxEmb, 'doPlot', 1);
+currMaxEmb = nobs - 1;
+if tau > 1; currMaxEmb = floor(nobs / tau); end
+[fnnPercent, Es] = mdFnn(data(1, :).', tau, 'maxEmb', min(currMaxEmb, maxEmb), 'doPlot', 1);
 E = findElbow(Es, fnnPercent)

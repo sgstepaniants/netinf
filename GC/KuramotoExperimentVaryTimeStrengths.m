@@ -4,16 +4,16 @@ addpath('../DataScripts')
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
-nvars = 2;
+nvars = 15;
 
 expNum = sprintf('VaryTimeStrengths_Size%d', nvars);
 
 % Connection strengths
-strengths = 1; %1 : 10;
+strengths = 3;
 numStrengths = length(strengths);
 
 % Simulation endtimes
-endtimes = max(3, 25 / strengths); %5 : 5 : 25;
+endtimes = 5; %5 %5 : 5 : 25; %max(3, 25 / strengths); %5 : 5 : 25;
 numEndtimes = length(endtimes);
 
 % Initial conditions
@@ -37,7 +37,7 @@ prob = 0.5;
 numMats = 1;
 
 % Number of experimental trials
-numTrials = 10;
+numTrials = 100;
 
 rhoThresh = 0.995;
 
@@ -51,13 +51,13 @@ expPath = sprintf('../KuramotoExperiments/%s', expName);
 %    end
 %    rmdir(expPath, 's')
 %end
-%mkdir(expPath)
+mkdir(expPath)
 
 % Save experiment parameters.
-%save(sprintf('%s/params.mat', expPath));
+save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
-%resultPath = sprintf('%s/GCResults', expPath);
+resultPath = sprintf('%s/GCResults', expPath);
 %if exist(resultPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
 %    if upper(m) == 'N'
@@ -65,7 +65,7 @@ expPath = sprintf('../KuramotoExperiments/%s', expName);
 %    end
 %    rmdir(resultPath, 's')
 %end
-%mkdir(resultPath)
+mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
@@ -141,8 +141,8 @@ diagnosticsLog = reshape(diagnosticsLog, [numEndtimes, numStrengths, numMats, 3]
 numRerun = sum(reshape(numRerun, [numEndtimes, numStrengths, numMats]), 4);
 
 % Save experiment results
-%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-%    'accLog', 'diagnosticsLog', 'numRerun');
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results
@@ -157,14 +157,14 @@ set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 colormap jet
-%colorbar
-%title('Average Accuracy over Simulations')
-%xlabel('Connection Strength')
-%ylabel('Endtime')
-%set(gca, 'XTick', strengths)
-%set(gca, 'YTick', endtimes)
-set(gca, 'TickLength', [0 0])
-hold on; line(strengths, 10 ./ strengths, 'Linewidth', 5, 'Color', 'k')
+colorbar
+title('Average Accuracy over Simulations')
+xlabel('Connection Strength')
+ylabel('Endtime')
+set(gca, 'XTick', strengths)
+set(gca, 'YTick', endtimes)
+bestEndtimes = 4.5 * nvars ./ strengths;
+hold on; line(1:numStrengths, bestEndtimes / 5, 'Linewidth', 5, 'Color', 'k')
 
 
 % Show average TPR for each number of perturbations and

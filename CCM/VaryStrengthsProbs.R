@@ -3,6 +3,8 @@ library(lattice)
 library(abind)
 library(doParallel)
 require(R.matlab)
+require(matlabr)
+setwd("~/netinf/CCM")
 source('ccm_helper.R')
 source('CCMBaseExperiment.R')
 source('AnalysisFunctions/moving_average.R')
@@ -50,26 +52,24 @@ num_probs <- params$numProbs
 strengths <- params$strengths
 num_strengths <- params$numStrengths
 
-# Create data structures to hold experiment results
-pred_mats <- array(NaN, c(nvars, nvars, num_mats, num_probs, num_strengths))
-graph_log <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_mats, num_probs, num_strengths))
-tpr_log <- array(NaN, c(num_probs, num_strengths, num_mats))
-fpr_log <- array(NaN, c(num_probs, num_strengths, num_mats))
-acc_log <- array(NaN, c(num_probs, num_strengths, num_mats))
-
 # Register number of cores
 registerDoParallel(cores=12)
 
 # Iterate over all possible connection probabilities and spring constants
+count <- 0
 results <-
   foreach (j = 1:num_probs, .combine='cbind') %:%
     foreach (k = 1:num_strengths, .combine='cbind') %:%
-      foreach (m = 1:num_mats, .combine='cbind') %do% {
+      foreach (m = 1:num_mats, .combine='cbind') %dopar% {
+        print(sprintf('%f%% completed', 100 * count / (num_probs * num_strengths * num_mats)))
+        count <- count + 1
         print(sprintf('prob: %d, strength: %d', j, k))
+        
+        data_path <- sprintf("%s/prob%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
         if (!file.exists(data_path)) {
+          print('skipping')
           result <- list("pred_mats"=NA, "graphs"=NA, "table_results"=list("tpr"=NA, "fpr"=NA, "acc"=NA))
         } else {
-          data_path <- sprintf("%s/prob%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
           emb_params_path <- sprintf("%s/prob%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
           data_log <- readMat(data_path)
           data <- data_log$noisyData
@@ -103,6 +103,9 @@ for (ind in 1:(num_probs*num_strengths*num_mats)) {
   acc_log[j, k, m] <- table_results$acc
 }
 
+#prob <- 2; strength <- 1; mat <- 1; node1 <- 1; node2 <- 5
+#ccm_rho_graph <- apply(graph_log[prob, strength, mat][[1]][node1,node2,,,1], 1, mean)
+#plot(ccm_rho_graph, type='l')
 
 # Save experiment result files.
 save(pred_mats, tpr_log, fpr_log, acc_log, graph_log, file=sprintf("%s/results.rds", result_path))

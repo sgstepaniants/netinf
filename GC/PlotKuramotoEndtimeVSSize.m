@@ -3,6 +3,11 @@ addpath('../DataScripts')
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
+expNum = 'PlotEndtimeSize';
+% Check that directory with experiment data exists
+expName = sprintf('EXP%s', expNum);
+expPath = sprintf('../KuramotoExperiments/%s', expName);
+
 networkSizes = 1 : 20;
 numSizes = length(networkSizes);
 
@@ -16,8 +21,8 @@ deltat = 0.1;
 nobs = round(endtime / deltat);
 tSpan = linspace(0, endtime, nobs);
 
-pfn = @(n) 2*pi*rand([n, 1]); % uniform [0, 2pi]
-wfn = @(n) 2*rand([n, 1]) - ones(n,1); % uniform [-1, 1]
+pfn = @(n) randfn(n, 0, 2*pi);
+wfn = @(n) randfn(n, -1, 1);
 
 noisefn  = @(data) WhiteGaussianNoise(data, 0.01);
 prob = 0.5;
@@ -26,6 +31,11 @@ secondDerivThresh = 0.001;
 w = gausswin(15);
 w = w / sum(w);
 
+% Save experiment parameters.
+save(sprintf('%s/params.mat', expPath));
+
+
+dataLog = cell(numSizes, numStrengths, numMats);
 charTimes = nan([numSizes, numStrengths, numMats]);
 for j = 1 : numSizes
     nvars = networkSizes(j)
@@ -35,6 +45,7 @@ for j = 1 : numSizes
             mat = MakeNetworkER(nvars, prob, true);
             forcingFunc = zeros(nvars, nobs);
             data = GenerateKuramotoData(mat, tSpan, 1, strength, pfn, wfn, forcingFunc);
+            dataLog{j, k, m} = data;
             
             smoothedData = filter(w, 1, data, [], 2);
             secondDeriv = diff(smoothedData, 2, 2);
@@ -51,9 +62,10 @@ for j = 1 : numSizes
     end
 end
 
-save charTimes
-meanCharTime = nanmean(charTimes, 3);
+save(sprintf('%s/dataLog.mat', expPath), 'dataLog');
+save(sprintf('%s/charTimes.mat', expPath), 'charTimes');
 
+meanCharTime = nanmean(charTimes, 3);
 figure(1);
 surf(meanCharTime)
 set(gca, 'XTickLabel', [])
@@ -63,11 +75,14 @@ set(gca, 'TickLength', [0 0])
 
 
 figure(2)
-plot(1 ./ strengths(10:25), meanCharTime(10:end, 10:25), 'Linewidth', 2)
-%hold on;
-%plot(1 ./ strengths, 250 ./ strengths, 'Linewidth', 3)
+strengthRange = 1:25;
+sizeRange = 1:20;
+plot(1 ./ strengths(strengthRange), meanCharTime(sizeRange, strengthRange), 'Linewidth', 2)
+%p = polyfit(1 ./ strengths(strengthRange), meanCharTime(sizeRange, strengthRange), 1);
+hold on;
+%plot(1 ./ strengths, p(0) ./ strengths + p(1), 'Linewidth', 3)
 set(gca, 'XTickLabel', [])
 set(gca, 'YTickLabel', [])
 set(gca, 'ZTickLabel', [])
 set(gca, 'TickLength', [0 0])
-axis([0, 1.1, 0, 210])
+axis([0, 1, 0, 250])

@@ -30,7 +30,7 @@ get_ccm_rho <- function(data, E, lib_sizes, tau=1, num_trials=dim(data)[3], num_
           #legend(x = "topleft", legend = paste(i, "xmap", j),
           #       col = c("red"), lwd = 1, bty = "n", inset = 0.02, cex = 0.8)
         }
-        print(paste(j, "causes", i))
+        #print(paste(j, "causes", i))
       }
     }
   }
@@ -51,7 +51,7 @@ embed_params <- function(data_path, result_path, max_delay, max_emb) {
            "[fnnPercent, Es] = mdFnn(noisyData(1, :, 1).', tau, 'maxEmb', min(currMaxEmb, maxEmb), 'doPlot', 0);",
            "E = findElbow(Es, fnnPercent);",
            sprintf("save('%s', 'tau', 'E', '-ascii')", result_path))
-  res = run_matlab_code(code)
+  res = run_matlab_code(code, verbose=FALSE)
   output = readLines(con = result_path)
   emb_params <- list("tau"=as.numeric(output[1]), "E"=as.numeric(output[2]))
   return(emb_params)

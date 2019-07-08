@@ -157,12 +157,12 @@ set(gca,'YDir','normal')
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average Accuracy over Simulations')
-xlabel('Connection Strength')
-ylabel('Endtime')
-set(gca, 'XTick', strengths)
-set(gca, 'YTick', endtimes)
+%colorbar
+%title('Average Accuracy over Simulations')
+%xlabel('Connection Strength')
+%ylabel('Endtime')
+%set(gca, 'XTick', strengths)
+%set(gca, 'YTick', endtimes)
 bestEndtimes = 4.5 * nvars ./ strengths;
 hold on; line(1:numStrengths, bestEndtimes / 5, 'Linewidth', 5, 'Color', 'k')
 

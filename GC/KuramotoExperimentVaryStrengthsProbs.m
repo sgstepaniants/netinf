@@ -24,6 +24,13 @@ wfn = @(n) randfn(n, -1, 1);
 % Define time sampling.
 deltat = 0.1; % space between time points
 
+endtime = 25;
+nobs = round(endtime / deltat); % number of time points (observations)
+tSpan = linspace(0, endtime, nobs);
+
+% Specify forcing function for oscillators.
+forcingFunc = zeros([nvars, nobs]);
+
 % Specify noise and prepocessing for data.
 measParam = 0.1;
 noisefn  = @(data) WhiteGaussianNoise(data, measParam);
@@ -105,19 +112,13 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
         % Create adjacency matrices.
         mat = MakeNetworkER(nvars, prob, true);
         
-        endtime = max(3, round(25 / strength));
-        nobs = round(endtime / deltat); % number of time points (observations)
-        tSpan = linspace(0, endtime, nobs);
-        
-        % Specify forcing function for oscillators.
-        forcingFunc = zeros([nvars, nobs]);
-
         % Simulate oscillator trajectories.
         data = GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
-        [est, tableResults] = GrangerBaseExperiment(noisyData, ...
+        gcEndtime = round(max(3, round(22.5 / strength)) / deltat); % number of time points to give to GC
+        [est, tableResults] = GrangerBaseExperiment(noisyData(1 : gcEndtime), ...
                 mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;

@@ -123,8 +123,7 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
         K(2:nvars+1, 2:nvars+1) = mat;
         K = strength .* K;
 
-        % If any nodes in the network are not connected to the walls or
-        % the eigenvalues of the system have positive real parts, don't
+        % If any eigenvalues of the system have positive real parts, don't
         % use this network.
         [~, amplitudes] = checkHarmonicMat(K, damping);
         if any(amplitudes > 0)

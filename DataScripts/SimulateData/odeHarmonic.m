@@ -1,4 +1,4 @@
-function dydt = odeNN(t, y, param)
+function dydt = odeHarmonic(t, y, param)
 %
 % definition of ODE for NNCoupled model, to be passed to ode45
 % 

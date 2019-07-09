@@ -6,20 +6,15 @@ addpath('../DataScripts/SimulateData/InitFunctions')
 
 expNum = 'VarySizeStrengths';
 
-networkSizes = 2 : 10;
+networkSizes = 20; %2 : 2 : 20;
 numSizes = length(networkSizes);
 
-strengths = 1 : 10;
+strengths = 1; %1 : 10;
 numStrengths = length(strengths);
 
 % Initialize masses, positions, and velocities of oscillators.
-mfn = @(n) constfn(n, 1);
-pfn = @(n) randfn(n, -0.5, 0.5);
-vfn = @(n) zeros([n, 1]);
-
-% Specify the damping constant.
-damping = 0.2;
-cfn = @(n) constfn(n, damping);
+pfn = @(n) randfn(n, 0, 2*pi);
+wfn = @(n) randfn(n, -1, 1);
 
 % Define time sampling.
 deltat = 0.1; % space between time points
@@ -29,7 +24,7 @@ tSpan = linspace(0, endtime, nobs);
 
 % Specify noise and prepocessing for data.
 measParam = 0.1;
-noisefn  = @(data) WhiteGaussianNoise(data, measParam);
+noisefn = @(data) WhiteGaussianNoise(data, measParam);
 
 % Specify boundary conditions.
 bc = 'fixed';
@@ -38,11 +33,9 @@ bc = 'fixed';
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 100;
+numMats = 1; %100;
 
-numTrials = 10;
-
-preprocfn = @(data) standardize(data);
+numTrials = 100;
 
 % Spectral radius threshold for MVGC toolbox.
 rhoThresh = 0.995;
@@ -50,7 +43,7 @@ rhoThresh = 0.995;
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
-expPath = sprintf('../HarmonicExperiments/%s', expName);
+expPath = sprintf('../KuramotoExperiments/%s', expName);
 if exist(expPath, 'dir') == 7
     m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
     if upper(m) == 'N'
@@ -77,6 +70,10 @@ mkdir(resultPath)
 
 %% Generate Data and Run Granger Causality Experiments
 
+% Run Granger Causality to infer network connections.
+preprocfn = @(data) cos(data);
+save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
+
 predMats = cell(1, numSizes * numStrengths * numMats);
 tprLog = nan(1, numSizes * numStrengths * numMats);
 fprLog = nan(1, numSizes * numStrengths * numMats);
@@ -84,8 +81,8 @@ accLog = nan(1, numSizes * numStrengths * numMats);
 numRerun = zeros(1, numSizes * numStrengths * numMats);
 diagnosticsLog = nan(numSizes * numStrengths * numMats, 3);
 
-parDataSave = @(fname, noisyData, mat, K)...
-            save(fname, 'noisyData', 'mat', 'K');    
+parDataSave = @(fname, noisyData, mat)...
+            save(fname, 'noisyData', 'mat');
 parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
             save(fname, 'est', 'tpr', 'fpr', 'acc', 'diagnostics');
 
@@ -112,35 +109,22 @@ for idx = 1 : numSizes * numStrengths * numMats %parfor (idx = 1 : numSizes * nu
     while true
         % Create adjacency matrices.
         mat = MakeNetworkER(nvars, prob, true);
-        K = MakeNetworkTriDiag(nvars+2, false);
-        K(2:nvars+1, 2:nvars+1) = mat;
-        K = strength * K;
         
-        % If any eigenvalues of the system have positive real parts, don't
-        % use this network.
-        [~, amplitudes] = checkHarmonicMat(K, damping);
-        if any(amplitudes > 0)
-            numRerun(idx) = numRerun(idx) + 1;
-            continue
-        end
-        
-        % Specify forcing function for oscillators.
-        forcingFunc = zeros([nvars, nobs]);
-
         % Simulate oscillator trajectories.
-        data = GenerateHarmonicData(nvars, tSpan, ...
-                numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
+        forcingFunc = zeros([nvars, nobs]);
+        data = GenerateKuramotoData(mat, tSpan, numTrials, strength, pfn, wfn, forcingFunc);
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
-        [est, tableResults] = GrangerBaseExperiment(noisyData, ...
+        gcSimulationLength = round(max(3, round(22.5 / strength)) / deltat); % number of time points to give to GC
+        [est, tableResults] = GrangerBaseExperiment(noisyData(:, 1:gcSimulationLength, :), ...
                 mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;
             continue
         end
         
-        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
+        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
         parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
             tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
         

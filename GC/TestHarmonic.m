@@ -5,7 +5,7 @@ clear all; close all; clc;
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
-nvars = 2;
+nvars = 20;
 bc = 'fixed';
 
 endtime = 25;

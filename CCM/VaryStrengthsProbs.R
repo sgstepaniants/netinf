@@ -56,13 +56,10 @@ num_strengths <- params$numStrengths
 registerDoParallel(cores=12)
 
 # Iterate over all possible connection probabilities and spring constants
-count <- 0
 results <-
   foreach (j = 1:num_probs, .combine='cbind') %:%
     foreach (k = 1:num_strengths, .combine='cbind') %:%
       foreach (m = 1:num_mats, .combine='cbind') %dopar% {
-        print(sprintf('%f%% completed', 100 * count / (num_probs * num_strengths * num_mats)))
-        count <- count + 1
         print(sprintf('prob: %d, strength: %d', j, k))
         
         data_path <- sprintf("%s/prob%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
@@ -90,10 +87,10 @@ for (ind in 1:(num_probs*num_strengths*num_mats)) {
   if (num_probs*num_strengths*num_mats > 1) {
     result <- results[, ind]
   }
-  idx <- arrayInd(ind, c(num_probs, num_strengths, num_mats))
-  j <- idx[1]
+  idx <- arrayInd(ind, c(num_mats, num_strengths, num_probs))
+  m <- idx[1]
   k <- idx[2]
-  m <- idx[3]
+  j <- idx[3]
   
   pred_mats[j, k, m][[1]] <- result$pred_mats
   graph_log[j, k, m][[1]] <- result$graphs
@@ -103,9 +100,32 @@ for (ind in 1:(num_probs*num_strengths*num_mats)) {
   acc_log[j, k, m] <- table_results$acc
 }
 
-#prob <- 2; strength <- 1; mat <- 1; node1 <- 1; node2 <- 5
-#ccm_rho_graph <- apply(graph_log[prob, strength, mat][[1]][node1,node2,,,1], 1, mean)
-#plot(ccm_rho_graph, type='l')
+for (ind in 1:(num_probs*num_strengths*num_mats)) {
+  idx <- arrayInd(ind, c(num_probs, num_strengths, num_mats))
+  j <- idx[1]
+  k <- idx[2]
+  m <- idx[3]
+  pred_mats_flat[ind][[1]] <- pred_mats[j, k, m][[1]]
+  graph_log_flat[ind][[1]] <- graph_log[j, k, m][[1]]
+  tpr_log_flat[ind] <- tpr_log[j, k, m]
+  fpr_log_flat[ind] <- fpr_log[j, k, m]
+  acc_log_flat[ind] <- acc_log[j, k, m]
+}
+for (ind in 1:(num_probs*num_strengths*num_mats)) {
+  idx <- arrayInd(ind, c(num_mats, num_strengths, num_probs))
+  m <- idx[1]
+  k <- idx[2]
+  j <- idx[3]
+  pred_mats[j, k, m][[1]] <- pred_mats_flat[ind][[1]]
+  graph_log[j, k, m][[1]] <- graph_log_flat[ind][[1]]
+  tpr_log[j, k, m] <- tpr_log_flat[ind]
+  fpr_log[j, k, m] <- fpr_log_flat[ind]
+  acc_log[j, k, m] <- acc_log_flat[ind]
+}
+
+#probNum <- 2; strengthNum <- 1; matNum <- 1; node1 <- 5; node2 <- 1
+#ccm_rho_graph <- apply(graph_log[probNum, strengthNum, matNum][[1]][node1,node2,1,,1], 1, mean)
+#plot(ccm_rho_graph, ylim=c(0, 1), type='l')
 
 # Save experiment result files.
 save(pred_mats, tpr_log, fpr_log, acc_log, graph_log, file=sprintf("%s/results.rds", result_path))

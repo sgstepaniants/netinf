@@ -117,8 +117,8 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
-        gcEndtime = round(max(3, round(22.5 / strength)) / deltat); % number of time points to give to GC
-        [est, tableResults] = GrangerBaseExperiment(noisyData(1 : gcEndtime), ...
+        gcSimulationLength = round(max(3, round(22.5 / strength)) / deltat); % number of time points to give to GC
+        [est, tableResults] = GrangerBaseExperiment(noisyData(:, 1:gcSimulationLength, :), ...
                 mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;

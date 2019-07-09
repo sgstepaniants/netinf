@@ -3,7 +3,7 @@
 
 clear all; close all; clc;
 
-nvars = 10;
+nvars = 2;
 
 endtime = 25;
 deltat = 0.1;
@@ -13,13 +13,13 @@ tSpan = linspace(0, endtime, nobs);
 noisefn  = @(data) WhiteGaussianNoise(data, 0.01);
 
 prob = 0.5;
-mat = ones(nvars); % adjacency matrix
-mat(1 : nvars + 1 : nvars^2) = 0;
-%mat = MakeNetworkER(nvars, prob, true);
+%mat = ones(nvars); % adjacency matrix
+%mat(1 : nvars + 1 : nvars^2) = 0;
+mat = MakeNetworkER(nvars, prob, true);
 K = 10; % connection strength
 
-pfn = @(n) 2*pi*rand([n, 1]); % uniform [0, 2pi]
-wfn = @(n) 2*rand([n, 1]) - ones(n,1); % uniform [-1, 1]
+pfn = @(n) randfn(n, 0, 2*pi);
+wfn = @(n) randfn(n, -1, 1);
 
 forcingFunc = zeros(nvars, nobs);
 Y = GenerateKuramotoData(mat, tSpan, 1, K, pfn, wfn, forcingFunc);

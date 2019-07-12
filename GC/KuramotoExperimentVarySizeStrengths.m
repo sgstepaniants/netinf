@@ -116,7 +116,8 @@ for idx = 1 : numSizes * numStrengths * numMats %parfor (idx = 1 : numSizes * nu
         noisyData = noisefn(data);
 
         dataObsIdx = true([1, nvars]); % default parameter
-        gcSimulationLength = round(max(3, round(22.5 / strength)) / deltat); % number of time points to give to GC
+        % number of time points to give to GC
+        gcSimulationLength = round(max(3, min(round(4.5 * nvars / strength), 25)) / deltat);
         [est, tableResults] = GrangerBaseExperiment(noisyData(:, 1:gcSimulationLength, :), ...
                 mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)

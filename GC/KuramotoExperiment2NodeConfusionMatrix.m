@@ -88,7 +88,9 @@ save(sprintf('%s/Ks.mat', expPath), 'Ks');
 preprocfn = @(data) cos(data);
 save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
 
-[predMats, tableResults] = GrangerBaseExperiment(dataLog, trueMats, preprocfn);
+% number of time points to give to GC
+gcSimulationLength = round(max(3, min(round(4.5 * nvars / strength), 25)) / deltat);
+[predMats, tableResults] = GrangerBaseExperiment(dataLog(:, 1:gcSimulationLength, :, :), trueMats, preprocfn);
 
 % Create a confusion matrix for network predictions.
 confusionMat = ConfusionMatrix(trueMats, predMats)

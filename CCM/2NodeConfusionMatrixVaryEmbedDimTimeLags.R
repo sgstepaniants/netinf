@@ -2,6 +2,7 @@ library(rEDM)
 library(lattice)
 require(R.matlab)
 library(doParallel)
+setwd("~/netinf/CCM")
 source('ccm_helper.R')
 source('CCMBaseExperiment.R')
 source('AnalysisFunctions/ConfusionMatrix.R')
@@ -36,8 +37,8 @@ num_mats <- dim(data_log)[4]
 true_mats <- readMat(sprintf("%s/trueMats.mat", exp_path))[[1]]
 
 # Perform CCM analysis on sample data
-Es <- seq(2, 15, 2)
-taus <- c(1, 5, 10, 15)
+Es <- 2 #seq(2, 15, 2)
+taus <- 15 #c(1, 5, 10, 15)
 num_Es <- length(Es)
 num_taus <- length(taus)
 num_libs <- 10
@@ -82,24 +83,12 @@ for (ind in 1:(num_Es*num_taus)) {
 ave_accs <- apply(acc_log, c(1, 2), mean)
 
 # Compute the confusion matrix
-confusion_mat <- confusion_matrix(true_mats, pred_mats[,,, 1, 4])
+confusion_mat <- confusion_matrix(true_mats, pred_mats[,,, 5, 2])
 print(confusion_mat)
 
 # Save experiment result files.
-saveRDS(pred_mats, sprintf("%s/pred_mats.rds", result_path))
-writeMat(sprintf("%s/predMats.m", result_path), A = pred_mats)
-
-saveRDS(tpr_log, sprintf("%s/tpr_log.rds", result_path))
-writeMat(sprintf("%s/tprLog.m", result_path), A = tpr_log)
-
-saveRDS(fpr_log, sprintf("%s/fpr_log.rds", result_path))
-writeMat(sprintf("%s/fprLog.m", result_path), A = fpr_log)
-
-saveRDS(acc_log, sprintf("%s/acc_log.rds", result_path))
-writeMat(sprintf("%s/accLog.m", result_path), A = acc_log)
-
-saveRDS(graph_log, sprintf("%s/graph_log.rds", result_path))
-writeMat(sprintf("%s/graphLog.m", result_path), A = graph_log)
+save(pred_mats, tpr_log, fpr_log, acc_log, graph_log, file=sprintf("%s/results.rds", result_path))
+#writeMat(sprintf("%s/results.mat", result_path), A=pred_mats, B=tpr_log, C=fpr_log, D=acc_log, E=graph_log)
 
 
 # Plot directional causality rho graphs

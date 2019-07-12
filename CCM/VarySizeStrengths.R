@@ -9,7 +9,7 @@ source('ccm_helper.R')
 source('CCMBaseExperiment.R')
 source('AnalysisFunctions/moving_average.R')
 
-exp_name <- "VaryStrengthsProbs_Size3"
+exp_name <- "VarySizeStrengths"
 exp_path <- sprintf("../HarmonicExperiments/EXP%s", exp_name)
 
 print(exp_path)
@@ -44,11 +44,10 @@ max_emb <- Inf
 exp_params <- list("num_libs"=num_libs, "num_samples"=num_samples, "preprocfn"=preprocfn, "max_delay"=max_delay, "max_emb"=max_emb)
 saveRDS(exp_params, sprintf("%s/exp_params.rds", result_path))
 
-nvars <- params$nvars
 num_trials <- 1 #params$numTrials
 num_mats <- params$numMats
-probs <- params$probs
-num_probs <- params$numProbs
+network_sizes <- params$networkSizes
+num_sizes <- params$numSizes
 strengths <- params$strengths
 num_strengths <- params$numStrengths
 
@@ -57,60 +56,63 @@ registerDoParallel(cores=12)
 
 # Iterate over all possible connection probabilities and spring constants
 # results <-
-#   foreach (j = 1:num_probs, .combine='cbind') %:%
+#   foreach (j = 1:num_sizes, .combine='cbind') %:%
 #     foreach (k = 1:num_strengths, .combine='cbind') %:%
 #       foreach (m = 1:num_mats, .combine='cbind') %dopar% {
-#         print(sprintf('prob: %d, strength: %d', j, k))
+#         print(sprintf('size: %d, strength: %d', j, k))
 #         
-#         data_path <- sprintf("%s/prob%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
+#         data_path <- sprintf("%s/size%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
 #         if (!file.exists(data_path)) {
 #           print('skipping')
 #           result <- list("pred_mats"=NA, "graphs"=NA, "table_results"=list("tpr"=NA, "fpr"=NA, "acc"=NA))
 #         } else {
-#           emb_params_path <- sprintf("%s/prob%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
+#           emb_params_path <- sprintf("%s/sizes%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
 #           data_log <- readMat(data_path)
 #           data <- data_log$noisyData
 #           mat <- data_log$mat
 #           emb_params <- embed_params(data_path, emb_params_path, max_delay, max_emb)
 #           result <- CCMBaseExperiment(data, mat, emb_params$E, num_libs, emb_params$tau, num_trials, num_samples, preprocfn)
+#           save(result, file=sprintf("%s/size%d/strength%d/mat%d/result.rds", exp_path, j, k, m))
+#           result
 #         }
 #       }
 
 E <- 10
 tau <- 5
 results <-
-  foreach (j = 1:num_probs, .combine='cbind') %:%
+  foreach (j = 1:num_sizes, .combine='cbind') %:%
     foreach (k = 1:num_strengths, .combine='cbind') %:%
       foreach (m = 1:num_mats, .combine='cbind') %do% {
-        print(sprintf('prob: %d, strength: %d', j, k))
+        print(sprintf('size: %d, strength: %d', j, k))
         
-        data_path <- sprintf("%s/prob%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
+        data_path <- sprintf("%s/size%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
         if (!file.exists(data_path)) {
           print('skipping')
           result <- list("pred_mats"=NA, "graphs"=NA, "table_results"=list("tpr"=NA, "fpr"=NA, "acc"=NA))
         } else {
-          #emb_params_path <- sprintf("%s/prob%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
+          #emb_params_path <- sprintf("%s/size%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
           data_log <- readMat(data_path)
           data <- data_log$noisyData
           mat <- data_log$mat
           #emb_params <- embed_params(data_path, emb_params_path, max_delay, max_emb)
           result <- CCMBaseExperiment(data, mat, E, num_libs, tau, num_trials, num_samples, preprocfn)
-          save(result, file=sprintf("%s/prob%d/strength%d/mat%d/result.rds", exp_path, j, k, m))
+          save(result, file=sprintf("%s/size%d/strength%d/mat%d/result.rds", exp_path, j, k, m))
+          result
         }
       }
 
 # Create data structures to hold experiment results
-graph_log <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_probs, num_strengths, num_mats))
-pred_mats <- array(NaN, c(nvars, nvars, num_probs, num_strengths, num_mats))
-tpr_log <- array(NaN, c(num_probs, num_strengths, num_mats))
-fpr_log <- array(NaN, c(num_probs, num_strengths, num_mats))
-acc_log <- array(NaN, c(num_probs, num_strengths, num_mats))
-for (ind in 1:(num_probs*num_strengths*num_mats)) {
+graph_log <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_sizes, num_strengths, num_mats))
+pred_mats <- array(NaN, c(nvars, nvars, num_sizes, num_strengths, num_mats))
+tpr_log <- array(NaN, c(num_sizes, num_strengths, num_mats))
+fpr_log <- array(NaN, c(num_sizes, num_strengths, num_mats))
+acc_log <- array(NaN, c(num_sizes, num_strengths, num_mats))
+for (ind in 1:(num_sizes*num_strengths*num_mats)) {
   result <- results
-  if (num_probs*num_strengths*num_mats > 1) {
+  if (num_sizes*num_strengths*num_mats > 1) {
     result <- results[, ind]
   }
-  idx <- arrayInd(ind, c(num_mats, num_strengths, num_probs))
+  idx <- arrayInd(ind, c(num_mats, num_strengths, num_sizes))
   m <- idx[1]
   k <- idx[2]
   j <- idx[3]
@@ -125,21 +127,21 @@ for (ind in 1:(num_probs*num_strengths*num_mats)) {
 
 
 # Inspect rho graphs
-probNum <- 9; strengthNum <- 10; matNum <- 1; node1 <- 1; node2 <- 5
-ccm_rho_graph <- graph_log[node1,node2,, 1, probNum, strengthNum, matNum]
+sizeNum <- 9; strengthNum <- 10; matNum <- 1; node1 <- 1; node2 <- 5
+ccm_rho_graph <- graph_log[node1,node2,, 1, sizeNum, strengthNum, matNum]
 if (num_trials > 1) {
-  ccm_rho_graph <- apply(graph_log[node1,node2,,, probNum, strengthNum, matNum], 1, mean)
+  ccm_rho_graph <- apply(graph_log[node1,node2,,, sizeNum, strengthNum, matNum], 1, mean)
 }
 plot(ccm_rho_graph, ylim=c(0, 1), type='l')
 
 
 # Inspect predicted matrices and accuracy
-probNum <- 6; strengthNum <- 5; matNum <- 10;
-#scp -r gstepan@doppio.amath.washington.edu:~/netinf/HarmonicExperiments/EXPVaryStrengthsProbs_Size5/prob5/strength3/mat1/dataLog.mat ./
+sizeNum <- 6; strengthNum <- 5; matNum <- 10;
+#scp -r gstepan@doppio.amath.washington.edu:~/netinf/HarmonicExperiments/EXPVarySizeStrengths/size5/strength3/mat1/dataLog.mat ./
 data_log <- readMat(sprintf("%s/dataLog.mat", exp_path))
-pred_mats[,, probNum, strengthNum, matNum]
+pred_mats[,, sizeNum, strengthNum, matNum]
 data_log$mat
-acc_log[probNum, strengthNum, matNum]
+acc_log[sizeNum, strengthNum, matNum]
 
 
 # Save experiment result files.

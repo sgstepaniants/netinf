@@ -11,7 +11,6 @@ get_ccm_rho <- function(data, E, lib_sizes, tau=1, num_trials=dim(data)[3], num_
   for (i in 1:nvars) {
     for (j in 1:nvars) {
       if (i != j) {
-        sum_rho_graph <- numeric(length(lib_sizes))
         for (t in 1:num_trials) {
           currData = data
           if (hasTrials) {

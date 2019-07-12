@@ -4,18 +4,14 @@ addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
 % Network size
-nvars = 5;
+nvars = 10;
 
 % Experiment name
-expNum = sprintf('VaryStrengthsProbsNoDamping_Size%d', nvars);
+expNum = sprintf('VaryNoise_Size%d', nvars);
 
-% Probabilities of network connections
-probs = [0, 0.5, 1]; %0 : 0.1 : 1;
-numProbs = length(probs);
-
-% Connection strengths
-strengths = 1 : 1 : 10;
-numStrengths = length(strengths);
+% Noise magnitudes
+noiseMagnitudes = 0.2 : 0.2 : 2;
+noiseMagnitudesLength = length(noiseMagnitudes);
 
 % Initialize masses, positions, and velocities of oscillators.
 mfn = @(n) constfn(n, 1);
@@ -23,7 +19,7 @@ pfn = @(n) randfn(n, -0.5, 0.5);
 vfn = @(n) zeros([n, 1]);
 
 % Specify the damping constant.
-damping = 0;
+damping = 0.2;
 cfn = @(n) constfn(n, damping);
 
 % Define time sampling.
@@ -36,6 +32,10 @@ tSpan = linspace(0, endtime, nobs);
 measParam = 0.1;
 noisefn  = @(data) WhiteGaussianNoise(data, measParam);
 
+prob = 0.5;
+
+strength = 1;
+
 % Specify forcing function for oscillators.
 forcingFunc = zeros([nvars, nobs]);
 
@@ -44,55 +44,55 @@ bc = 'fixed';
 
 % Number of matrices to try for each probability and connection strength
 % combination.
-numMats = 10;
+numMats = 100;
 
 % Number of simulation trials.
 numTrials = 10;
 
 % Spectral radius threshold for MVGC toolbox.
-rhoThresh = 1; %0.995;
+rhoThresh = 0.995;
 
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../HarmonicExperiments/%s', expName);
-if exist(expPath, 'dir') == 7
+%if exist(expPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
 %    if upper(m) == 'N'
 %        return
 %    end
-    rmdir(expPath, 's')
-end
-mkdir(expPath)
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') == 7
+%if exist(resultPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
 %    if upper(m) == 'N'
 %       return
 %    end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
 
 % Run Granger Causality to infer network connections.
 preprocfn = @(data) standardize(data);
-save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
+%save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
 
 % Run Granger Causality to infer network connections.
-predMats = nan(nvars, nvars, numProbs * numStrengths * numMats);
-tprLog = nan(1, numProbs * numStrengths * numMats);
-fprLog = nan(1, numProbs * numStrengths * numMats);
-accLog = nan(1, numProbs * numStrengths * numMats);
-numRerun = zeros(1, numProbs * numStrengths * numMats);
-diagnosticsLog = nan(numProbs * numStrengths * numMats, 3);
+predMats = nan(nvars, nvars, noiseMagnitudesLength * numMats);
+tprLog = nan(1, noiseMagnitudesLength * numMats);
+fprLog = nan(1, noiseMagnitudesLength * numMats);
+accLog = nan(1, noiseMagnitudesLength * numMats);
+numRerun = zeros(1, noiseMagnitudesLength * numMats);
+diagnosticsLog = nan(noiseMagnitudesLength * numMats, 3);
 
 parDataSave = @(fname, noisyData, mat, K)...
             save(fname, 'noisyData', 'mat', 'K');    
@@ -101,20 +101,19 @@ parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
 
 % Number of parallel processes
 M = 12;
-c = progress(numProbs * numStrengths * numMats);
-parfor (idx = 1 : numProbs * numStrengths * numMats, M)
-    [j, k, m] = ind2sub([numProbs, numStrengths, numMats], idx);
-    fprintf('prob: %d, strength: %d\n', j, k)
+c = progress(noiseMagnitudesLength * numMats);
+parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
+    [j, m] = ind2sub([noiseMagnitudesLength, numMats], idx);
+    fprintf('noise: %d\n', j)
     
     c.count();
     
-    currExpPath = sprintf('%s/prob%d/strength%d/mat%d', expPath, j, k, m);
+    currExpPath = sprintf('%s/noise%d/mat%d', expPath, j, m);
     if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
         mkdir(currExpPath)
     end
     
-    prob = probs(j);
-    strength = strengths(k);
+    noiseMagnitude = noiseMagnitudes(j);
     
     while true
         % Create adjacency matrices.
@@ -134,36 +133,36 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
         % Simulate oscillator trajectories.
         data = GenerateHarmonicData(nvars, tSpan, ...
                 numTrials, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
-        noisyData = noisefn(data);
+        noisyData = WhiteGaussianNoise(data, noiseMagnitude);
+        
+        dataObsIdx = true([1, nvars]); % default parameter
+        [est, tableResults] = GrangerBaseExperiment(noisyData, ...
+            mat, preprocfn, dataObsIdx, rhoThresh);
+        if isnan(est)
+            numRerun(idx) = numRerun(idx) + 1;
+            continue
+        end
 
-        %dataObsIdx = true([1, nvars]); % default parameter
-        %[est, tableResults] = GrangerBaseExperiment(noisyData, ...
-        %    mat, preprocfn, dataObsIdx, rhoThresh);
-        %if isnan(est)
-        %    numRerun(idx) = numRerun(idx) + 1;
-        %    continue
-        %end
-
-        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
+        %parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat, K);
         %parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
         %    tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
 
-        %predMats(:, :, idx) = est;
-        %tprLog(idx) = tableResults.tpr;
-        %fprLog(idx) = tableResults.fpr;
-        %accLog(idx) = tableResults.acc;
-        %diagnosticsLog(idx, :) = tableResults.diagnostics;
+        predMats(:, :, idx) = est;
+        tprLog(idx) = tableResults.tpr;
+        fprLog(idx) = tableResults.fpr;
+        accLog(idx) = tableResults.acc;
+        diagnosticsLog(idx, :) = tableResults.diagnostics;
         break
     end
 end
 
 % Reshape data structures
-predMats = reshape(predMats, [nvars, nvars, numProbs, numStrengths, numMats]);
-tprLog = reshape(tprLog, [numProbs, numStrengths, numMats]);
-fprLog = reshape(fprLog, [numProbs, numStrengths, numMats]);
-accLog = reshape(accLog, [numProbs, numStrengths, numMats]);
-numRerun = sum(reshape(numRerun, [numProbs, numStrengths, numMats]), 3);
-diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
+predMats = reshape(predMats, [nvars, nvars, noiseMagnitudesLength, numMats]);
+tprLog = reshape(tprLog, [noiseMagnitudesLength, numMats]);
+fprLog = reshape(fprLog, [noiseMagnitudesLength, numMats]);
+accLog = reshape(accLog, [noiseMagnitudesLength, numMats]);
+numRerun = sum(reshape(numRerun, [noiseMagnitudesLength, numMats]), 2);
+diagnosticsLog = reshape(diagnosticsLog, [noiseMagnitudesLength, numMats, 3]);
 
 %save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
 %    'accLog', 'diagnosticsLog', 'numRerun');
@@ -173,67 +172,41 @@ diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
 
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(numRerun)
-colorbar
-title('Number of Simulations Rerun by Our Analysis')
-xlabel('Connection Strength')
-ylabel('Connection Probability')
-set(gca, 'XTickLabel', strengths)
-set(gca, 'YTickLabel', probs)
-set(gca,'TickLength',[0 0])
-set(gca,'YDir','normal')
-colormap jet
+plot(noiseMagnitudes, numRerun)
+xlabel('Noise')
+ylabel('Simulations Rerun')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 
 
 % Show average accuracies for each number of perturbations and
 % observations.
-aveAccuracies = nanmean(accLog, 3);
+aveAccuracies = nanmean(accLog, 2);
 figure(2)
-clims = [0, 1];
-imagesc(aveAccuracies, clims)
-set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
-colormap jet
-%colorbar
-%title('Average Accuracy over Simulations')
-%xlabel('Connection Strength')
-%ylabel('Connection Probability')
-%set(gca, 'XTickLabel', strengths)
-%set(gca, 'YTickLabel', probs)
+plot(noiseMagnitudes, aveAccuracies)
+xlabel('Noise')
+ylabel('Accuracy')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 
 
 % Show average TPR for each number of perturbations and
 % observations.
-aveTPR = nanmean(tprLog, 3);
+aveTPR = nanmean(tprLog, 2);
 figure(3)
-clims = [0, 1];
-imagesc(aveTPR, clims)
-set(gca,'YDir','normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
-colormap jet
-%colorbar
-%title('Average TPR over Simulations')
-%xlabel('Connection Strength')
-%ylabel('Connection Probability')
-%set(gca, 'XTickLabel', strengths)
-%set(gca, 'YTickLabel', probs)
+plot(noiseMagnitudes, aveTPR)
+xlabel('Noise')
+ylabel('TPR')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])
 
 
 % Show average FPR for each number of perturbations and
 % observations.
-aveFPR = nanmean(fprLog, 3);
+aveFPR = nanmean(fprLog, 2);
 figure(4)
-clims = [0, 1];
-imagesc(aveFPR, clims)
-set(gca, 'YDir', 'normal')
-set(gca, 'XTick', [])
-set(gca, 'YTick', [])
-colormap jet
-%colorbar
-%title('Average FPR over Simulations')
-%xlabel('Connection Strength')
-%ylabel('Connection Probability')
-%set(gca, 'XTickLabel', strengths)
-%set(gca, 'YTickLabel', probs)
+plot(noiseMagnitudes, aveFPR)
+xlabel('Noise')
+ylabel('FPR')
+%set(gca, 'XTick', [])
+%set(gca, 'YTick', [])

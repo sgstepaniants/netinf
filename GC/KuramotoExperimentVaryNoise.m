@@ -169,10 +169,10 @@ ylabel('Simulations Rerun')
 aveAccuracies = nanmean(accLog, 2);
 figure(2)
 plot(noiseMagnitudes, aveAccuracies)
-xlabel('Noise')
-ylabel('Accuracy')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+%xlabel('Noise')
+%ylabel('Accuracy')
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 
 
 % Show average TPR for each number of perturbations and
@@ -180,10 +180,10 @@ ylabel('Accuracy')
 aveTPR = nanmean(tprLog, 2);
 figure(3)
 plot(noiseMagnitudes, aveTPR)
-xlabel('Noise')
-ylabel('TPR')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+%xlabel('Noise')
+%ylabel('TPR')
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 
 
 % Show average FPR for each number of perturbations and
@@ -191,7 +191,19 @@ ylabel('TPR')
 aveFPR = nanmean(fprLog, 2);
 figure(4)
 plot(noiseMagnitudes, aveFPR)
-xlabel('Noise')
-ylabel('FPR')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+%xlabel('Noise')
+%ylabel('FPR')
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+
+
+% plot([0.1, noiseMagnitudes], [0.8092; aveAccuracies], 'LineWidth', 3)
+% hold on;
+% plot([0.1, noiseMagnitudes], [0.8441; aveTPR], 'LineWidth', 3)
+% hold on;
+% plot([0.1, noiseMagnitudes], [0.2261; aveFPR], 'LineWidth', 3)
+% legend({'Accuracy', 'True Positives', 'False Positives'}, 'FontSize', 20)
+% set(gca, 'XTick', [])
+% set(gca, 'YTick', [])
+% xlim([0 2.1])
+% ylim([0 1])

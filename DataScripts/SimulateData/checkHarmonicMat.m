@@ -18,6 +18,6 @@ function [disconnectedNodes, amplitudes, waitTime] = checkHarmonicMat(K, damping
     waitTime = 0;
     eps = 0.01;
     if nargin == 3
-        waitTime = 2 * ceil(log(eps / min(sqrt(sum((pertForce * inv(A)).^2)))) / max(amplitudes));
+        waitTime = 2 * ceil(log(eps / min(sqrt(sum((pertForce .* pinv(A)).^2)))) / max(amplitudes));
     end
 end

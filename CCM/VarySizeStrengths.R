@@ -102,8 +102,8 @@ results <-
       }
 
 # Create data structures to hold experiment results
-graph_log <- array(NaN, c(nvars, nvars, num_libs, num_trials, num_sizes, num_strengths, num_mats))
-pred_mats <- array(NaN, c(nvars, nvars, num_sizes, num_strengths, num_mats))
+graph_log <- array(list(), c(num_sizes, num_strengths, num_mats))
+pred_mats <- array(list(), c(num_sizes, num_strengths, num_mats))
 tpr_log <- array(NaN, c(num_sizes, num_strengths, num_mats))
 fpr_log <- array(NaN, c(num_sizes, num_strengths, num_mats))
 acc_log <- array(NaN, c(num_sizes, num_strengths, num_mats))
@@ -117,8 +117,8 @@ for (ind in 1:(num_sizes*num_strengths*num_mats)) {
   k <- idx[2]
   j <- idx[3]
   
-  pred_mats[,, j, k, m] <- result$pred_mats
-  graph_log[,,,, j, k, m] <- result$graphs
+  pred_mats[j, k, m][[1]] <- result$pred_mats
+  graph_log[j, k, m][[1]] <- result$graphs
   table_results <- result$table_results
   tpr_log[j, k, m] <- table_results$tpr
   fpr_log[j, k, m] <- table_results$fpr
@@ -146,8 +146,8 @@ acc_log[sizeNum, strengthNum, matNum]
 
 # Save experiment result files.
 save(pred_mats, tpr_log, fpr_log, acc_log, graph_log, file=sprintf("%s/results.rds", result_path))
-writeMat(sprintf("%s/results.mat", result_path), predMats=pred_mats, tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log, graphLog=graph_log)
-
+#writeMat(sprintf("%s/results.mat", result_path), predMats=pred_mats, tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log, graphLog=graph_log)
+writeMat("../HarmonicExperiments/EXPVarySizeStrengths/CCMResults_Small/results.mat", tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log)
 
 # Plot accuracy, TPR, and FPR for all connections probability and spring constant combinations
 rgb.palette <- colorRampPalette(c("blue", "red"), space = "rgb")
@@ -159,7 +159,7 @@ myPanel <- function(x, y, z, ...) {
 ave_acc <- apply(acc_log, c(1, 2), function(x) {mean(x, na.rm=TRUE)})
 levelplot(t(ave_acc), main="Average Accuracy over Simulations",
           xlab="Connection Strength", ylab="Connection Probability",
-          ylim=c(num_probs + 0.5, 0.5),
+          ylim=c(num_sizes + 0.5, 0.5),
           col.regions=rgb.palette(120),
           at=seq(0, 1, length.out=120),
           panel=myPanel)

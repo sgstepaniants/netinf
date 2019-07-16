@@ -110,3 +110,11 @@ imagesc(CCMKur)
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 colormap pinks
+
+
+%% Plot adjacency matrices
+
+imagesc(mat)
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+colormap gray

@@ -5,7 +5,7 @@ clear all; close all; clc;
 addpath('../DataScripts/SimulateData/')
 addpath('../DataScripts/SimulateData/InitFunctions/')
 
-nvars = 20;
+nvars = 3;
 bc = 'fixed';
 
 endtime = 25;
@@ -25,20 +25,21 @@ damping = 0.2;
 cfn = @(n) constfn(n, damping);
 
 prob = 0.5;
-strength = 0.1;
-mat = [[0, 1]; [0, 0]]; %MakeNetworkSymmER(nvars, prob, true);
+strength = 1;
+mat = [[0, 0, 0]; [1, 0, 0]; [0.5, 1, 0]]; %MakeNetworkSymmER(nvars, prob, true);
 K = MakeNetworkTriDiag(nvars + 2, false);
 K(2:nvars+1, 2:nvars+1) = mat;
 K = strength * K;
 
 forcingFunc = zeros([nvars, length(tSpan)]);
+forcingFunc(1, 100:150) = 10;
 
-ntrials = 5;
+ntrials = 1;
 data = GenerateHarmonicData(nvars, tSpan, ntrials, K, pfn, vfn, ...
         mfn, cfn, bc, forcingFunc);
 noisyData = noisefn(data);
 
-%plot(noisyData(:, :, 1).')
+plot(noisyData(:, :, 1).')
 
 preprocfn = @(data) standardize(data);
 dataObsIdx = true([1, nvars]);

@@ -47,6 +47,7 @@ embed_params <- function(data_path, result_path, max_delay, max_emb) {
            "tau = round(mdDelay(noisyData(:, :, 1).', 'maxLag', min(nobs, maxDelay), 'plottype', 'none'));",
            "currMaxEmb = nobs - 1;",
            "if tau > 1; currMaxEmb = floor(nobs / tau); end",
+           "currMaxEmb = max(2, currMaxEmb);",
            "[fnnPercent, Es] = mdFnn(noisyData(1, :, 1).', tau, 'maxEmb', min(currMaxEmb, maxEmb), 'doPlot', 0);",
            "E = findElbow(Es, fnnPercent);",
            sprintf("save('%s', 'tau', 'E', '-ascii')", result_path))

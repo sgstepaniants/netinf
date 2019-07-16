@@ -10,11 +10,11 @@ nvars = 5;
 expNum = sprintf('VaryStrengthsProbs_Size%d', nvars);
 
 % Probabilities of network connections to try.
-probs = 0 : 0.1 : 1;
+probs = 0.5; %0 : 0.1 : 1;
 numProbs = length(probs);
 
 % Connection strengths to try.
-strengths = 1 : 1 : 10;
+strengths = 5; %1 : 1 : 10;
 numStrengths = length(strengths);
 
 % Initialize positions and frequencies of oscillators.
@@ -37,7 +37,7 @@ noisefn  = @(data) WhiteGaussianNoise(data, measParam);
 
 % Number of matrices to try for each probability and connection strength
 % combination.
-numMats = 100;
+numMats = 1; %100;
 
 % Number of simulation trials.
 numTrials = 100;
@@ -49,28 +49,28 @@ rhoThresh = 0.995;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../KuramotoExperiments/%s', expName);
-if exist(expPath, 'dir') == 7
+%if exist(expPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
 %    if upper(m) == 'N'
 %        return
 %    end
-    rmdir(expPath, 's')
-end
-mkdir(expPath)
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') == 7
+%if exist(resultPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
 %    if upper(m) == 'N'
 %       return
 %    end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
@@ -94,7 +94,7 @@ parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
 % Number of parallel processes
 M = 12;
 c = progress(numProbs * numStrengths * numMats);
-parfor (idx = 1 : numProbs * numStrengths * numMats, M)
+for idx = 1 : numProbs * numStrengths * numMats %parfor (idx = 1 : numProbs * numStrengths * numMats, M)
     [j, k, m] = ind2sub([numProbs, numStrengths, numMats], idx);
     fprintf('prob: %d, strength: %d\n', j, k)
     
@@ -126,9 +126,9 @@ parfor (idx = 1 : numProbs * numStrengths * numMats, M)
             continue
         end
         
-        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
-            tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
+        %parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
+        %parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
+        %    tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
         
         predMats(:, :, idx) = est;
         tprLog(idx) = tableResults.tpr;
@@ -147,8 +147,8 @@ accLog = reshape(accLog, [numProbs, numStrengths, numMats]);
 diagnosticsLog = reshape(diagnosticsLog, [numProbs, numStrengths, numMats, 3]);
 numRerun = sum(reshape(numRerun, [numProbs, numStrengths, numMats]), 3);
 
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-    'accLog', 'diagnosticsLog', 'numRerun');
+%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+%    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results

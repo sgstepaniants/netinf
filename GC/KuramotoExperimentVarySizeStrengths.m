@@ -6,10 +6,10 @@ addpath('../DataScripts/SimulateData/InitFunctions')
 
 expNum = 'VarySizeStrengths';
 
-networkSizes = 20; %2 : 2 : 20;
+networkSizes = 2 : 2 : 20;
 numSizes = length(networkSizes);
 
-strengths = 1; %1 : 10;
+strengths = 1 : 10;
 numStrengths = length(strengths);
 
 % Initialize masses, positions, and velocities of oscillators.
@@ -35,7 +35,7 @@ prob = 0.5;
 % Number of matrices to average results over.
 numMats = 1; %100;
 
-numTrials = 100;
+numTrials = 1;
 
 % Spectral radius threshold for MVGC toolbox.
 rhoThresh = 0.995;
@@ -164,7 +164,6 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTick', strengths)
 set(gca, 'YTick', networkSizes)
-%set(gca,'TickLength', [0 0])
 
 
 % Show average accuracies for each number of perturbations and
@@ -174,16 +173,15 @@ figure(2)
 clims = [0, 1];
 imagesc(reshape(aveAccuracies, [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average Accuracy over Simulations')
-xlabel('Connection Strength')
-ylabel('Network Size')
-set(gca, 'XTick', strengths)
-set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average Accuracy over Simulations')
+%xlabel('Connection Strength')
+%ylabel('Network Size')
+%set(gca, 'XTick', strengths)
+%set(gca, 'YTick', networkSizes)
 
 
 % Show average TPR for each number of perturbations and
@@ -193,16 +191,15 @@ figure(3)
 clims = [0, 1];
 imagesc(reshape(aveTPR, [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average TPR over Simulations')
-xlabel('Connection Strength')
-ylabel('Network Size')
-set(gca, 'XTick', strengths)
-set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average TPR over Simulations')
+%xlabel('Connection Strength')
+%ylabel('Network Size')
+%set(gca, 'XTick', strengths)
+%set(gca, 'YTick', networkSizes)
 
 
 % Show average FPR for each number of perturbations and
@@ -212,13 +209,12 @@ figure(4)
 clims = [0, 1];
 imagesc(reshape(aveFPR, [numSizes, numStrengths]), clims)
 set(gca,'YDir','normal')
-%set(gca, 'XTick', [])
-%set(gca, 'YTick', [])
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
 colormap jet
-colorbar
-title('Average FPR over Simulations')
-xlabel('Connection Strength')
-ylabel('Network Size')
-set(gca, 'XTick', strengths)
-set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
+%colorbar
+%title('Average FPR over Simulations')
+%xlabel('Connection Strength')
+%ylabel('Network Size')
+%set(gca, 'XTick', strengths)
+%set(gca, 'YTick', networkSizes)

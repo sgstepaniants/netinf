@@ -100,39 +100,39 @@ rho_graphs_1causes2 <- apply(ave_rho_graphs[,,,101:(maxInd+100),,,drop=FALSE], c
 rho_graphs_2causes1 <- apply(ave_rho_graphs[,,,201:(maxInd+200),,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 rho_graphs_both <- apply(ave_rho_graphs[,,,301:(maxInd+300),,,drop=FALSE], c(1, 2, 3, 5, 6), mean)
 
-ind_E <- 1
-ind_tau <- 4
+ind_E <- 5
+ind_tau <- 2
 delta <- floor(250/(num_libs + 1))
 lib_sizes <- delta * 1:num_libs
 
 # No causality
 plot(lib_sizes, rho_graphs_none[1, 2,, ind_E, ind_tau], type = "l", col = "red", xlab = "Library Size", 
-     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "No causality")
+     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "No causality", lwd=5, font.lab=2, font.axis=2, cex.lab=1.5, cex.axis=1.3, cex.main=1.5, cex.sub=1.5)
 lines(lib_sizes, rho_graphs_none[2, 1,, ind_E, ind_tau], type = "l", col = "blue", xlab = "Library Size", 
-      ylab = "Cross Map Skill (rho)", ylim = c(0, 1))
+      ylab = "Cross Map Skill (rho)", ylim = c(0, 1), lwd=5)
 legend(x = "topleft", col = c("red", "blue"), legend = c("1 xmap 2", "2 xmap 1"),
-       lwd = 2, inset = 0.02, bty = "n", cex = 0.8)
+       lwd = 3, inset = 0.02, bty = "n", text.font=2, cex = 1.3)
 
 # 1 causes 2
 plot(lib_sizes, rho_graphs_1causes2[1, 2,, ind_E, ind_tau], type = "l", col = "red", xlab = "Library Size", 
-     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "1 -> 2")
+     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "1 -> 2", lwd=5, font.lab=2, font.axis=2, cex.lab=1.5, cex.axis=1.3, cex.main=1.5, cex.sub=1.5)
 lines(lib_sizes, rho_graphs_1causes2[2, 1,, ind_E, ind_tau], type = "l", col = "blue", xlab = "Library Size", 
-      ylab = "Cross Map Skill (rho)", ylim = c(0, 1))
+      ylab = "Cross Map Skill (rho)", ylim = c(0, 1), lwd=5)
 legend(x = "topleft", col = c("red", "blue"), legend = c("1 xmap 2", "2 xmap 1"),
-       lwd = 2, inset = 0.02, bty = "n", cex = 0.8)
+       lwd = 3, inset = 0.02, bty = "n", text.font=2, cex = 1.3)
 
 # 2 causes 1
 plot(lib_sizes, rho_graphs_2causes1[1, 2,, ind_E, ind_tau], type = "l", col = "red", xlab = "Library Size", 
-     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "1 <- 2")
+     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "2 -> 1", lwd=5, font.lab=2, font.axis=2, cex.lab=1.5, cex.axis=1.3, cex.main=1.5, cex.sub=1.5)
 lines(lib_sizes, rho_graphs_2causes1[2, 1,, ind_E, ind_tau], type = "l", col = "blue", xlab = "Library Size", 
-      ylab = "Cross Map Skill (rho)", ylim = c(0, 1))
+      ylab = "Cross Map Skill (rho)", ylim = c(0, 1), lwd=5)
 legend(x = "topleft", col = c("red", "blue"), legend = c("1 xmap 2", "2 xmap 1"),
-       lwd = 2, inset = 0.02, bty = "n", cex = 0.8)
+       lwd = 3, inset = 0.02, bty = "n", text.font=2, cex = 1.3)
 
 # Bidirectional causality
 plot(lib_sizes, rho_graphs_both[1, 2,, ind_E, ind_tau], type = "l", col = "red", xlab = "Library Size", 
-     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "1 <-> 2")
+     ylab = "Cross Map Skill (rho)", ylim = c(0, 1), main = "1 <-> 2", lwd=5, font.lab=2, font.axis=2, cex.lab=1.5, cex.axis=1.3, cex.main=1.5, cex.sub=1.5)
 lines(lib_sizes, rho_graphs_both[2, 1,, ind_E, ind_tau], type = "l", col = "blue", xlab = "Library Size", 
-     ylab = "Cross Map Skill (rho)", ylim = c(0, 1))
+      ylab = "Cross Map Skill (rho)", ylim = c(0, 1), lwd=5)
 legend(x = "topleft", col = c("red", "blue"), legend = c("1 xmap 2", "2 xmap 1"),
-       lwd = 2, inset = 0.02, bty = "n", cex = 0.8)
+       lwd = 3, inset = 0.02, bty = "n", text.font=2, cex = 1.3)

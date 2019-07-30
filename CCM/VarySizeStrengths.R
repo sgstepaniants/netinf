@@ -55,27 +55,32 @@ num_strengths <- params$numStrengths
 registerDoParallel(cores=12)
 
 # Iterate over all possible connection probabilities and spring constants
-# results <-
-#   foreach (j = 1:num_sizes, .combine='cbind') %:%
-#     foreach (k = 1:num_strengths, .combine='cbind') %:%
-#       foreach (m = 1:num_mats, .combine='cbind') %dopar% {
-#         print(sprintf('size: %d, strength: %d', j, k))
-#         
-#         data_path <- sprintf("%s/size%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
-#         if (!file.exists(data_path)) {
-#           print('skipping')
-#           result <- list("pred_mats"=NA, "graphs"=NA, "table_results"=list("tpr"=NA, "fpr"=NA, "acc"=NA))
-#         } else {
-#           emb_params_path <- sprintf("%s/sizes%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
-#           data_log <- readMat(data_path)
-#           data <- data_log$noisyData
-#           mat <- data_log$mat
-#           emb_params <- embed_params(data_path, emb_params_path, max_delay, max_emb)
-#           result <- CCMBaseExperiment(data, mat, emb_params$E, num_libs, emb_params$tau, num_trials, num_samples, preprocfn)
-#           save(result, file=sprintf("%s/size%d/strength%d/mat%d/result.rds", exp_path, j, k, m))
-#           result
-#         }
-#       }
+Es <- array(NaN, c(num_sizes, num_strengths, num_mats))
+taus <- array(NaN, c(num_sizes, num_strengths, num_mats))
+results <-
+  foreach (j = 1:num_sizes, .combine='cbind') %:%
+    foreach (k = 1:num_strengths, .combine='cbind') %:%
+      foreach (m = 1:num_mats, .combine='cbind') %dopar% {
+        print(sprintf('size: %d, strength: %d', j, k))
+
+        data_path <- sprintf("%s/size%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, m)
+        if (!file.exists(data_path)) {
+          print('skipping')
+          result <- list("pred_mats"=NA, "graphs"=NA, "table_results"=list("tpr"=NA, "fpr"=NA, "acc"=NA))
+        } else {
+          emb_params_path <- sprintf("%s/sizes%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, m)
+          data_log <- readMat(data_path)
+          data <- data_log$noisyData
+          mat <- data_log$mat
+          emb_params <- embed_params(data_path, emb_params_path, max_delay, max_emb)
+          Es[j, k, m] <- emb_params$E
+          taus[j, k, m] <- emb_params$tau
+          
+          result <- CCMBaseExperiment(data, mat, emb_params$E, num_libs, emb_params$tau, num_trials, num_samples, preprocfn)
+          save(result, file=sprintf("%s/size%d/strength%d/mat%d/result.rds", exp_path, j, k, m))
+          result
+        }
+      }
 
 E <- 10
 tau <- 5
@@ -128,9 +133,10 @@ for (ind in 1:(num_sizes*num_strengths*num_mats)) {
 
 # Inspect rho graphs
 sizeNum <- 9; strengthNum <- 10; matNum <- 1; node1 <- 1; node2 <- 5
-ccm_rho_graph <- graph_log[node1,node2,, 1, sizeNum, strengthNum, matNum]
+#ccm_rho_graph <- graph_log[node1,node2,, 1, sizeNum, strengthNum, matNum]
+ccm_rho_graph <- graph_log[sizeNum, strengthNum, matNum][[1]][node1,node2,, 1]
 if (num_trials > 1) {
-  ccm_rho_graph <- apply(graph_log[node1,node2,,, sizeNum, strengthNum, matNum], 1, mean)
+  ccm_rho_graph <- apply(graph_log[sizeNum, strengthNum, matNum][[1]][node1,node2,,, 1], 1, mean)
 }
 plot(ccm_rho_graph, ylim=c(0, 1), type='l')
 
@@ -145,9 +151,8 @@ acc_log[sizeNum, strengthNum, matNum]
 
 
 # Save experiment result files.
-save(pred_mats, tpr_log, fpr_log, acc_log, graph_log, file=sprintf("%s/results.rds", result_path))
-#writeMat(sprintf("%s/results.mat", result_path), predMats=pred_mats, tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log, graphLog=graph_log)
-writeMat("../HarmonicExperiments/EXPVarySizeStrengths/CCMResults_Small/results.mat", tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log)
+save(pred_mats, tpr_log, fpr_log, acc_log, Es, taus, graph_log, file=sprintf("%s/results.rds", result_path))
+writeMat(sprintf("%s/results.mat", result_path), tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log)
 
 # Plot accuracy, TPR, and FPR for all connections probability and spring constant combinations
 rgb.palette <- colorRampPalette(c("blue", "red"), space = "rgb")
@@ -158,8 +163,8 @@ myPanel <- function(x, y, z, ...) {
 
 ave_acc <- apply(acc_log, c(1, 2), function(x) {mean(x, na.rm=TRUE)})
 levelplot(t(ave_acc), main="Average Accuracy over Simulations",
-          xlab="Connection Strength", ylab="Connection Probability",
-          ylim=c(num_sizes + 0.5, 0.5),
+          xlab="Connection Strength", ylab="Network Size",
+          ylim=c(network_sizes + 0.5, 0.5),
           col.regions=rgb.palette(120),
           at=seq(0, 1, length.out=120),
           panel=myPanel)

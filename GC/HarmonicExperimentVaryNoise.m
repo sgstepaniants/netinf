@@ -10,7 +10,7 @@ nvars = 10;
 expNum = sprintf('VaryNoise_Size%d', nvars);
 
 % Noise magnitudes
-noiseMagnitudes = 0.2 : 0.2 : 2;
+noiseMagnitudes = 2; %0.2 : 0.2 : 2;
 noiseMagnitudesLength = length(noiseMagnitudes);
 
 % Initialize masses, positions, and velocities of oscillators.
@@ -102,7 +102,7 @@ parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
 % Number of parallel processes
 M = 12;
 c = progress(noiseMagnitudesLength * numMats);
-parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
+for (idx = 1 : noiseMagnitudesLength * numMats) %parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
     [j, m] = ind2sub([noiseMagnitudesLength, numMats], idx);
     fprintf('noise: %d\n', j)
     

@@ -52,7 +52,7 @@ num_strengths <- params$numStrengths
 num_mats <- params$numMats
 
 # Register number of cores
-registerDoParallel(cores=2)
+registerDoParallel(cores=25)
 
 # Iterate over all possible connection probabilities and spring constants
 results <-

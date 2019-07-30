@@ -56,7 +56,7 @@ function Y = harmonicOsc(K, p, v, m, c, tSpan, bc, forcingFunc)
     y0 = [p; v];
     
     % Solve this ode
-    SOL = ode15s(@(t, y) odeHarmonic(t, y, param), tSpan, y0);
+    SOL = ode45(@(t, y) odeHarmonic(t, y, param), tSpan, y0);
     Y = deval(SOL, tSpan);
     
     % Take only the top portion of the matrix which holds the positions

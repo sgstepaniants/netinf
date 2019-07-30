@@ -70,6 +70,25 @@ data = GenerateHarmonicData(nvars, tSpan, 1, K, pfn, vfn, mfn, cfn, bc, forcingF
 figure(4)
 plot(noisefn(normalize(data)).' + repmat([2; 1; 0; -1; -2], [1, length(tSpan)]).', 'LineWidth', 3);
 
+% Noisy forced harmonic oscillator data
+bc = 'fixed';
+mfn = @(n) constfn(n, 1);
+pfn = @(n) randfn(n, -0.5, 0.5);
+vfn = @(n) zeros([n, 1]);
+
+damping = 0.5;
+cfn = @(n) constfn(n, damping);
+K = [[0, 1, 0, 0, 0, 0, 0]; [1, 0, 1, 0, 0, 0, 0]; [0, 1, 0, 0, 1, 0, 0]; [0, 1, 0, 0, 1, 1, 0]; [0, 0, 0, 1, 0, 0, 0]; [0, 0, 0, 0, 0, 0, 1]; [0, 0, 0, 0, 0, 1, 0]];
+K = K * 0.5;
+
+forcingFunc(1, 50:100) = 10;
+data = GenerateHarmonicData(nvars, tSpan, 1, K, pfn, vfn, mfn, cfn, bc, forcingFunc);
+figure(4)
+plot(noisefn(data).' + repmat([4; 2; 0; -2; -4], [1, length(tSpan)]).', 'LineWidth', 5);
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+ylim([-5, 21])
+
 % Noisy Kuramoto oscillator data
 A = [[0, 0, 1, 0, 0]; [1, 0, 0, 1, 0]; [0, 0, 0, 0, 1]; [0, 1, 1, 0, 0]; [0, 1, 0, 0, 0]];
 K = 10.2;
@@ -78,6 +97,19 @@ wfn = @(n) [2; 1; 0; -1; -2];
 data = GenerateKuramotoData(A, tSpan, 1, K, pfn, wfn, forcingFunc);
 figure(4)
 plot(noisefn(data).' + repmat([2; 1; 0; -1; -2], [1, length(tSpan)]).', 'LineWidth', 5);
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+set(gca,'TickLength',[0 0])
+
+% Noisy forced Kuramoto oscillator data
+A = [[0, 0, 1, 0, 0]; [1, 0, 0, 1, 0]; [0, 0, 0, 0, 1]; [0, 1, 1, 0, 0]; [0, 1, 0, 0, 0]];
+K = 40;
+wfn = @(n) [2; 1; 0; -1; -2];
+
+forcingFunc(1, 50:100) = 10;
+data = GenerateKuramotoData(A, tSpan, 1, K, pfn, wfn, forcingFunc);
+figure(4)
+plot(noisefn(data).' + repmat([4; 2; 0; -2; -4], [1, length(tSpan)]).', 'LineWidth', 5);
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
 set(gca,'TickLength',[0 0])
@@ -109,7 +141,7 @@ figure(8)
 imagesc(CCMKur)
 set(gca, 'XTick', [])
 set(gca, 'YTick', [])
-colormap pinks
+colormap pink
 
 
 %% Plot adjacency matrices

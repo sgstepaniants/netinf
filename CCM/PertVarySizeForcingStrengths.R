@@ -34,44 +34,49 @@ if (!dir.exists(result_path)) {
 params <- readMat(sprintf("%s/params.mat", exp_path))
 
 # Perform CCM analysis on data
-E <- 2
 num_libs <- 1
-num_trials <- 1
 num_samples <- 100
-
-max_delay <- 100
-max_emb <- 20
-
-#window_size <- 10
-#preprocfn <- function(x) {moving_average(x, window_size)}
 preprocfn <- identity
+max_delay <- Inf
+max_emb <- Inf
 
 # Save experiment parameters
-exp_params <- list("E"=E, "num_libs"=num_libs, "num_samples"=num_samples, "preprocfn"=preprocfn)
+exp_params <- list("num_libs"=num_libs, "num_samples"=num_samples, "preprocfn"=preprocfn, "max_delay"=max_delay, "max_emb"=max_emb)
 saveRDS(exp_params, sprintf("%s/exp_params.rds", result_path))
 
-num_sizes <- params$numSizes
-num_forces <- params$numForces
-num_strengths <- params$numStrengths
+num_trials <- 1 #params$numTrials
 num_mats <- params$numMats
+network_sizes <- params$networkSizes
+num_sizes <- params$numSizes
+forces <- params$forces
+num_forces <- params$numForces
+strengths <- params$strengths
+num_strengths <- params$numStrengths
 
 # Register number of cores
-registerDoParallel(cores=12)
+registerDoParallel(cores=25)
 
 # Iterate over all possible connection probabilities and spring constants
+Es <- array(NaN, c(num_sizes, num_forces, num_strengths, num_mats))
+taus <- array(NaN, c(num_sizes, num_forces, num_strengths, num_mats))
 results <-
   foreach (j = 1:num_sizes, .combine='cbind') %:%
     foreach (k = 1:num_forces, .combine='cbind') %:%
       foreach (l = 1:num_strengths, .combine='cbind') %:%
-        foreach (m = 1:num_mats, .combine='cbind') %do% {
+        foreach (m = 1:num_mats, .combine='cbind') %dopar% {
           print(sprintf('size: %d, force: %d, strength: %d, mat: %d', j, k, l, m))
           data_path <- sprintf("%s/size%d/force%d/strength%d/mat%d/dataLog.mat", exp_path, j, k, l, m)
-          result_path <- sprintf("%s/size%d/force%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, l, m)
+          emb_params_path <- sprintf("%s/size%d/force%d/strength%d/mat%d/embedParams.txt", exp_path, j, k, l, m)
           data_log <- readMat(data_path)
           data <- data_log$noisyData
           mat <- data_log$mat
-          emb_params <- embed_params(data_path, result_path, max_delay, max_emb)
+          emb_params <- embed_params(data_path, emb_params_path, max_delay, max_emb)
+          Es[j, k, l, m] <- emb_params$E
+          taus[j, k, l, m] <- emb_params$tau
+          
           result <- CCMBaseExperiment(data, mat, emb_params$E, num_libs, emb_params$tau, num_trials, num_samples, preprocfn)
+          save(result, file=sprintf("%s/size%d/force%d/strength%d/mat%d/result.rds", exp_path, j, k, l, m))
+          result
         }
 
 # Create data structures to hold experiment results
@@ -85,11 +90,11 @@ for (ind in 1:(num_sizes*num_forces*num_strengths*num_mats)) {
   if (num_sizes*num_forces*num_strengths*num_mats > 1) {
     result <- results[, ind]
   }
-  idx <- arrayInd(ind, c(num_sizes, num_forces, num_strengths, num_mats))
-  j <- idx[1]
-  k <- idx[2]
-  l <- idx[3]
-  m <- idx[4]
+  idx <- arrayInd(ind, c(num_mats, num_strengths, num_forces, num_sizes))
+  m <- idx[1]
+  l <- idx[2]
+  k <- idx[3]
+  j <- idx[4]
   
   pred_mats[j, k, l, m][[1]] <- result$pred_mats
   graph_log[j, k, l, m][[1]] <- result$graphs
@@ -101,20 +106,8 @@ for (ind in 1:(num_sizes*num_forces*num_strengths*num_mats)) {
 
 
 # Save experiment result files.
-saveRDS(pred_mats, sprintf("%s/pred_mats.rds", result_path))
-writeMat(sprintf("%s/predMats.mat", result_path), A = pred_mats)
-
-saveRDS(tpr_log, sprintf("%s/tpr_log.rds", result_path))
-writeMat(sprintf("%s/tprLog.mat", result_path), A = tpr_log)
-
-saveRDS(fpr_log, sprintf("%s/fpr_log.rds", result_path))
-writeMat(sprintf("%s/fprLog.mat", result_path), A = fpr_log)
-
-saveRDS(acc_log, sprintf("%s/acc_log.rds", result_path))
-writeMat(sprintf("%s/accLog.mat", result_path), A = acc_log)
-
-saveRDS(graph_log, sprintf("%s/graph_log.rds", result_path))
-writeMat(sprintf("%s/graphLog.mat", result_path), A = graph_log)
+save(pred_mats, tpr_log, fpr_log, acc_log, Es, taus, graph_log, file=sprintf("%s/results.rds", result_path))
+writeMat(sprintf("%s/results.mat", result_path), tprLog=tpr_log, fprLog=fpr_log, accLog=acc_log)
 
 
 # Plot accuracy, TPR, and FPR for all connections probability and spring constant combinations

@@ -13,7 +13,7 @@ fnnPercentThresh = 20;
 
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
-expPath = sprintf('../HarmonicExperiments/%s', expName);
+expPath = sprintf('../KuramotoExperiments/%s', expName);
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/MdembeddResults', expPath);

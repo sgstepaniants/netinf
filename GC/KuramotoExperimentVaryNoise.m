@@ -10,7 +10,7 @@ nvars = 10;
 expNum = sprintf('VaryNoise_Size%d', nvars);
 
 % Noise magnitudes
-noiseMagnitudes = 0.2 : 0.2 : 2;
+noiseMagnitudes = 4; %0.2 : 0.2 : 2;
 noiseMagnitudesLength = length(noiseMagnitudes);
 
 % Initialize positions and frequencies of oscillators.
@@ -29,7 +29,7 @@ noisefn  = @(data) WhiteGaussianNoise(data, measParam);
 
 prob = 0.5;
 
-strength = 3;
+strength = 5;
 
 % Specify forcing function for oscillators.
 forcingFunc = zeros([nvars, nobs]);
@@ -51,28 +51,28 @@ rhoThresh = 0.995;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../KuramotoExperiments/%s', expName);
-if exist(expPath, 'dir') == 7
+%if exist(expPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
 %    if upper(m) == 'N'
 %        return
 %    end
-    rmdir(expPath, 's')
-end
-mkdir(expPath)
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') == 7
+%if exist(resultPath, 'dir') == 7
 %    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
 %    if upper(m) == 'N'
 %       return
 %    end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
@@ -105,7 +105,7 @@ parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
     
     currExpPath = sprintf('%s/noise%d/mat%d', expPath, j, m);
     if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
-        mkdir(currExpPath)
+        %mkdir(currExpPath)
     end
     
     noiseMagnitude = noiseMagnitudes(j);
@@ -128,9 +128,9 @@ parfor (idx = 1 : noiseMagnitudesLength * numMats, M)
             continue
         end
 
-        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
-            tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
+        %parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
+        %parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
+        %    tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
 
         predMats(:, :, idx) = est;
         tprLog(idx) = tableResults.tpr;
@@ -149,8 +149,8 @@ accLog = reshape(accLog, [noiseMagnitudesLength, numMats]);
 numRerun = sum(reshape(numRerun, [noiseMagnitudesLength, numMats]), 2);
 diagnosticsLog = reshape(diagnosticsLog, [noiseMagnitudesLength, numMats, 3]);
 
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-    'accLog', 'diagnosticsLog', 'numRerun');
+%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+%    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results
@@ -207,3 +207,14 @@ set(gca, 'YTick', [])
 % set(gca, 'YTick', [])
 % xlim([0 2.1])
 % ylim([0 1])
+
+plot([0.1, 0.2 : 0.2 : 4], [0.8702; aveAccuracies; aveAccuracies2], 'LineWidth', 3)
+hold on;
+plot([0.1, 0.2 : 0.2 : 4], [0.9398; aveTPR; aveTPR2], 'LineWidth', 3)
+hold on;
+plot([0.1, 0.2 : 0.2 : 4], [0.2023; aveFPR; aveFPR2], 'LineWidth', 3)
+legend({'Accuracy', 'True Positives', 'False Positives'}, 'FontSize', 20)
+set(gca, 'XTick', [])
+set(gca, 'YTick', [])
+xlim([0 4.1])
+ylim([0 1])

@@ -70,11 +70,16 @@ function [pertOrders, pertValues] = GetPertOrders(observedData, pertIdx, obsIdx,
         else
             if length(unique(clusterValues)) == 1 || ...
                 (length(clusterValues) == 2 && abs(clusterValues(1) - clusterValues(2)) < 0.1)
-                % Edge case when clustering a list of identical numbers
+                % Edge case when clustering a list of too few numbers
                 idx = ones(length(clusterValues), 1);
                 C = clusterValues(1);
             else
                 [idx, C] = kmeans_opt(clusterValues.');
+                % Edge case when clustering a list of identical numbers
+                %if range(C) / mean(C) < 0.01
+                %    idx = ones(length(clusterValues), 1);
+                %    C = clusterValues(1);
+                %end
             end
         end
 

@@ -1,6 +1,7 @@
 clear all; close all; clc;
 run '../mvgc_v1.0/startup.m'
 addpath('../DataScripts/SimulateData/')
+addpath('../DataScripts/SimulateData/InitFunctions/')
 
 expNum = 'PertVarySizeForcingStrengths';
 
@@ -17,10 +18,10 @@ expPath = sprintf('../KuramotoExperiments/%s', expName);
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
 if exist(resultPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    if upper(m) == 'N'
-       return
-    end
+    %m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+    %if upper(m) == 'N'
+    %   return
+    %end
     rmdir(resultPath, 's')
 end
 mkdir(resultPath)
@@ -34,8 +35,11 @@ predMats = cell(1, numSizes * numForces * numStrengths * numMats);
 tprLog = nan(1, numSizes * numForces * numStrengths * numMats);
 fprLog = nan(1, numSizes * numForces * numStrengths * numMats);
 accLog = nan(1, numSizes * numForces * numStrengths * numMats);
-diagnosticsLog = nan(numSizes * numForces * numStrengths * numMats, 3);
 numRerun = zeros(1, numSizes * numForces * numStrengths * numMats);
+diagnosticsLog = nan(numSizes * numForces * numStrengths * numMats, 3);
+
+parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
+            save(fname, 'est', 'tpr', 'fpr', 'acc', 'diagnostics');
 
 % Number of parallel processes
 M = 25;
@@ -63,7 +67,11 @@ for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : n
                 mat, preprocfn, dataObsIdx, rhoThresh);
         if isnan(est)
             numRerun(idx) = numRerun(idx) + 1;
+            continue
         end
+        
+        parResultsSave(sprintf('%s/GCresults.mat', currExpPath), est, ...
+            tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
         
         predMats{idx} = est;
         tprLog(idx) = tableResults.tpr;
@@ -79,16 +87,12 @@ predMats = reshape(predMats, numSizes, numForces, numStrengths, numMats);
 tprLog = reshape(tprLog, [numSizes, numForces, numStrengths, numMats]);
 fprLog = reshape(fprLog, [numSizes, numForces, numStrengths, numMats]);
 accLog = reshape(accLog, [numSizes, numForces, numStrengths, numMats]);
-diagnosticsLog = reshape(diagnosticsLog, [numSizes, numForces, numStrengths, numMats, 3]);
 numRerun = sum(reshape(numRerun, [numSizes, numForces, numStrengths, numMats]), 4);
+diagnosticsLog = reshape(diagnosticsLog, [numSizes, numForces, numStrengths, numMats, 3]);
 
 % Save experiment results
-save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
-save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
-save(sprintf('%s/accLog.mat', resultPath), 'accLog');
-save(sprintf('%s/diagnosticsLog.mat', resultPath), 'diagnosticsLog');
-save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results

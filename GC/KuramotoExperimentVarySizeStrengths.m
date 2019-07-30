@@ -6,10 +6,10 @@ addpath('../DataScripts/SimulateData/InitFunctions')
 
 expNum = 'VarySizeStrengths';
 
-networkSizes = 2 : 2 : 20;
+networkSizes = 20; %2 : 2 : 20;
 numSizes = length(networkSizes);
 
-strengths = 1 : 10;
+strengths = 20; %1 : 10;
 numStrengths = length(strengths);
 
 % Initialize masses, positions, and velocities of oscillators.
@@ -33,9 +33,9 @@ bc = 'fixed';
 prob = 0.5;
 
 % Number of matrices to average results over.
-numMats = 1; %100;
+numMats = 10; %100;
 
-numTrials = 1;
+numTrials = 100;
 
 % Spectral radius threshold for MVGC toolbox.
 rhoThresh = 0.995;
@@ -44,35 +44,35 @@ rhoThresh = 0.995;
 % Check that directory with experiment data exists
 expName = sprintf('EXP%s', expNum);
 expPath = sprintf('../KuramotoExperiments/%s', expName);
-if exist(expPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
-    if upper(m) == 'N'
-        return
-    end
-    rmdir(expPath, 's')
-end
-mkdir(expPath)
+%if exist(expPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite this data (Y/N): ', expPath),'s');
+%    if upper(m) == 'N'
+%        return
+%    end
+%    rmdir(expPath, 's')
+%end
+%mkdir(expPath)
 
 % Save experiment parameters.
-save(sprintf('%s/params.mat', expPath));
+%save(sprintf('%s/params.mat', expPath));
 
 % Make directory to hold result files if one does not already exist
 resultPath = sprintf('%s/GCResults', expPath);
-if exist(resultPath, 'dir') == 7
-    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
-    if upper(m) == 'N'
-       return
-    end
-    rmdir(resultPath, 's')
-end
-mkdir(resultPath)
+%if exist(resultPath, 'dir') == 7
+%    m=input(sprintf('%s\n already exists, would you like to continue and overwrite these results (Y/N): ', resultPath),'s');
+%    if upper(m) == 'N'
+%       return
+%    end
+%    rmdir(resultPath, 's')
+%end
+%mkdir(resultPath)
 
 
 %% Generate Data and Run Granger Causality Experiments
 
 % Run Granger Causality to infer network connections.
 preprocfn = @(data) cos(data);
-save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
+%save(sprintf('%s/expParams.mat', resultPath), 'preprocfn')
 
 predMats = cell(1, numSizes * numStrengths * numMats);
 tprLog = nan(1, numSizes * numStrengths * numMats);
@@ -95,9 +95,9 @@ for idx = 1 : numSizes * numStrengths * numMats %parfor (idx = 1 : numSizes * nu
     
     currExpPath = sprintf('%s/size%d/strength%d/mat%d', expPath, j, k, m);
     if exist(sprintf('%s/dataLog.mat', currExpPath), 'file') ~= 2
-        mkdir(currExpPath)
+        %mkdir(currExpPath)
     else
-        continue
+        %continue
     end
     
     % Count the number of iterations done by the parfor loop
@@ -125,9 +125,9 @@ for idx = 1 : numSizes * numStrengths * numMats %parfor (idx = 1 : numSizes * nu
             continue
         end
         
-        parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
-        parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
-            tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
+        %parDataSave(sprintf('%s/dataLog.mat', currExpPath), noisyData, mat);
+        %parResultsSave(sprintf('%s/results.mat', currExpPath), est, ...
+        %    tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
         
         predMats{idx} = est;
         tprLog(idx) = tableResults.tpr;
@@ -147,8 +147,8 @@ diagnosticsLog = reshape(diagnosticsLog, [numSizes, numStrengths, numMats, 3]);
 numRerun = sum(reshape(numRerun, [numSizes, numStrengths, numMats]), 3);
 
 % Save experiment results
-save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
-    'accLog', 'diagnosticsLog', 'numRerun');
+%save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+%    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results

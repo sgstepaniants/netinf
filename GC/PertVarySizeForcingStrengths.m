@@ -1,6 +1,7 @@
 clear all; close all; clc;
 run '../mvgc_v1.0/startup.m'
 addpath('../DataScripts/SimulateData/')
+addpath('../DataScripts/SimulateData/InitFunctions/')
 
 expNum = 'PertVarySizeForcingStrengths';
 
@@ -34,8 +35,11 @@ predMats = cell(1, numSizes * numForces * numStrengths * numMats);
 tprLog = nan(1, numSizes * numForces * numStrengths * numMats);
 fprLog = nan(1, numSizes * numForces * numStrengths * numMats);
 accLog = nan(1, numSizes * numForces * numStrengths * numMats);
-diagnosticsLog = nan(numSizes * numForces * numStrengths * numMats, 3);
 numRerun = zeros(1, numSizes * numForces * numStrengths * numMats);
+diagnosticsLog = nan(numSizes * numForces * numStrengths * numMats, 3);
+
+parResultsSave = @(fname, est, tpr, fpr, acc, diagnostics)...
+            save(fname, 'est', 'tpr', 'fpr', 'acc', 'diagnostics');
 
 % Number of parallel processes
 M = 25;
@@ -66,6 +70,9 @@ for idx = 1 : numSizes * numForces * numStrengths * numMats %parfor (idx = 1 : n
             continue
         end
         
+        parResultsSave(sprintf('%s/GCresults.mat', currExpPath), est, ...
+            tableResults.tpr, tableResults.fpr, tableResults.acc, tableResults.diagnostics);
+        
         predMats{idx} = est;
         tprLog(idx) = tableResults.tpr;
         fprLog(idx) = tableResults.fpr;
@@ -80,25 +87,21 @@ predMats = reshape(predMats, numSizes, numForces, numStrengths, numMats);
 tprLog = reshape(tprLog, [numSizes, numForces, numStrengths, numMats]);
 fprLog = reshape(fprLog, [numSizes, numForces, numStrengths, numMats]);
 accLog = reshape(accLog, [numSizes, numForces, numStrengths, numMats]);
-diagnosticsLog = reshape(diagnosticsLog, [numSizes, numForces, numStrengths, numMats, 3]);
 numRerun = sum(reshape(numRerun, [numSizes, numForces, numStrengths, numMats]), 4);
+diagnosticsLog = reshape(diagnosticsLog, [numSizes, numForces, numStrengths, numMats, 3]);
 
 % Save experiment results
-save(sprintf('%s/predMats.mat', resultPath), 'predMats');
-save(sprintf('%s/tprLog.mat', resultPath), 'tprLog');
-save(sprintf('%s/fprLog.mat', resultPath), 'fprLog');
-save(sprintf('%s/accLog.mat', resultPath), 'accLog');
-save(sprintf('%s/diagnosticsLog.mat', resultPath), 'diagnosticsLog');
-save(sprintf('%s/numRerun.mat', resultPath), 'numRerun');
+save(sprintf('%s/results.mat', resultPath), 'predMats', 'tprLog', 'fprLog', ...
+    'accLog', 'diagnosticsLog', 'numRerun');
 
 
 %% Plot Results
 
-forceInd = 1;
+forceInd = 5;
 
 % Show number of simulations that were skipped.
 figure(1)
-imagesc(reshape(numRerun(:, forceInd, :), [numSizes, numStrengths]))
+imagesc(reshape(numRerun(1:2:19, forceInd, 2:2:10), [ceil(numSizes / 2), numStrengths / 2]))
 set(gca,'YDir','normal')
 colormap jet
 colorbar
@@ -107,7 +110,6 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTick', strengths)
 set(gca, 'YTick', networkSizes)
-set(gca,'TickLength', [0 0])
 
 
 % Show average accuracies for each number of perturbations and
@@ -115,7 +117,7 @@ set(gca,'TickLength', [0 0])
 aveAccuracies = nanmean(accLog, 4);
 figure(2)
 clims = [0, 1];
-imagesc(reshape(aveAccuracies(:, forceInd, :), [numSizes, numStrengths]), clims)
+imagesc(reshape(aveAccuracies(1:2:19, forceInd, 2:2:10), [ceil(numSizes / 2), numStrengths / 2]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -126,7 +128,6 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTick', strengths)
 set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
 
 
 % Show average TPR for each number of perturbations and
@@ -134,7 +135,7 @@ set(gca, 'YTick', networkSizes)
 aveTPR = nanmean(tprLog, 4);
 figure(3)
 clims = [0, 1];
-imagesc(reshape(aveTPR(:, forceInd, :), [numSizes, numStrengths]), clims)
+imagesc(reshape(aveTPR(1:2:19, forceInd, 2:2:10), [ceil(numSizes / 2), numStrengths / 2]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -145,7 +146,6 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTick', strengths)
 set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])
 
 
 % Show average FPR for each number of perturbations and
@@ -153,7 +153,7 @@ set(gca, 'YTick', networkSizes)
 aveFPR = nanmean(fprLog, 4);
 figure(4)
 clims = [0, 1];
-imagesc(reshape(aveFPR(:, forceInd, :), [numSizes, numStrengths]), clims)
+imagesc(reshape(aveFPR(1:2:19, forceInd, 2:2:10), [ceil(numSizes / 2), numStrengths / 2]), clims)
 set(gca,'YDir','normal')
 %set(gca, 'XTick', [])
 %set(gca, 'YTick', [])
@@ -164,4 +164,3 @@ xlabel('Connection Strength')
 ylabel('Network Size')
 set(gca, 'XTick', strengths)
 set(gca, 'YTick', networkSizes)
-%set(gca, 'TickLength', [0 0])

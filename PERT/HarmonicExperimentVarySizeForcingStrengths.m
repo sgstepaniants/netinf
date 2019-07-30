@@ -6,15 +6,15 @@ addpath('../DataScripts/SimulateData/InitFunctions/')
 expNum = 'PertVarySizeForcingStrengths';
 
 % Network sizes
-networkSizes = 5;
+networkSizes = 2 : 20;
 numSizes = length(networkSizes);
 
 % Connection strengths
-strengths = 0.1 : 0.5 : 1;
+strengths = 0.1 : 0.1 : 1;
 numStrengths = length(strengths);
 
 % Forcing magnitudes
-forces = 10 : 30 : 50;
+forces = 10 : 10 : 50;
 numForces = length(forces);
 
 % Initial conditions and masses
